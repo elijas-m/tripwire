@@ -1,0 +1,31 @@
+# Secrets and local state
+.env
+.env.*
+deploy/secrets.env
+*.ppk
+*.pem
+*.key
+*.db
+*.db-wal
+*.db-shm
+*.sqlite*
+*.log
+
+# Runtime data
+data/
+var/
+backups/
+.smoke/
+
+# Caches and virtualenvs
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Research artifacts (scraped samples contain the server IP) and internal spec
+probe/
+docs/
+ТЗ_Tripwire.txt
+.scan_secrets.py

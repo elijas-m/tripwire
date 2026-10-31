@@ -1,0 +1,489 @@
+# Weighted lexicon for Layer B (§6.2 B3).
+# Terms are case-insensitive. A trailing '*' is a stem wildcard (any word chars).
+# Scores: base = max(group weight) + 0.5 * (sum of other matched group weights), capped 12.
+version: 1
+
+groups:
+  S3: 5.0
+  S2: 2.0
+  S1: 1.0
+
+terms:
+  en:
+    S3:
+      - nuclear strike
+      - tactical nuclear
+      - article 5
+      - general mobilization
+      - full mobilization
+      - state of war
+      - declaration of war
+      - ground invasion
+      - ground operation
+      - strait of hormuz closed
+      - PHEIC
+      - public health emergency of international concern
+      - nationwide lockdown
+      - martial law
+      - mass evacuation
+      - ballistic missile attack
+      - declared war
+      - nuclear weapons use
+      - special military operation
+      - full-scale invasion
+      - recognis* the independence
+      - recogniz* the independence
+      - recognition of the independence
+      - extend recognition
+    S2:
+      - massive strike
+      - massive attack
+      - ballistic missile launch
+      - embassy evacuation
+      - evacuate embassy
+      - ordered departure
+      - authorized departure
+      - ambassador recalled
+      - nuclear exercise*
+      - alert level raised
+      - airspace closed
+      - airspace closure
+      - border closed
+      - border closure
+      - partial mobilization
+      - reservists called up
+      - call-up of reservists
+      - first case of
+      - outbreak
+      - quarantine
+      - pandemic
+      - sustained human-to-human transmission
+      - humanitarian corridor
+      - no-fly zone
+      - aircraft shot down
+      - drone attack
+      - missile strike
+      - airstrike
+      - evacuation order
+      - state of emergency
+      - package of sanctions
+      - use of armed forces abroad
+      - peacekeeping mission
+      - additional forces
+      - 're:\bdeploy\w*\s+(?:additional\s+)?(?:troops?|forces?|soldiers?|marines?|paratroopers?)\b'
+      - 're:\bdeploy\w*\s+(?:patriot|thaad|air[- ]defen[cs]e|missile[- ]defen[cs]e)\b'
+      - 're:\bdeploy\w*\s+(?:aircraft\s+carriers?|carrier\s+strike\s+group|warships?|destroyers?|submarines?|bombers?|fighter\s+jets?)\b'
+      - 're:\b(?:send|sends|sending|sent|move|moves|moving|moved|rush|rushes|rushing|rushed|transfer|transfers|transferring|transferred)\s+(?:additional\s+)?(?:troops?|forces?|soldiers?|marines?|warships?|aircraft\s+carriers?|carrier\s+strike\s+group|bombers?|fighter\s+jets?|patriot|thaad|air[- ]defen[cs]e)\b'
+      - carrier strike group
+      - 're:\b(?:military\s+)?(?:transport\s+planes?|transport\s+aircraft|cargo\s+planes?|warplanes?|military\s+aircraft|refueling\s+aircraft)\s+(?:land|lands|landing|landed|arrive|arrives|arrived|deploy\w*)\b'
+      - military buildup
+      - force buildup
+      - troop buildup
+    S1:
+      - border incident
+      - drone incursion
+      - drone over
+      - provocation
+      - ultimatum
+      - sanctions package
+      - troop movement*
+      - redeployment
+      - withdrawal from treaty
+      - cyberattack
+      - sabotage
+      - explosion
+      - protests
+      - curfew
+      - military exercises
+      - naval exercise*
+      - intercepted
+      - airspace violation
+
+  ru:
+    S3:
+      - тактическ* ядерн*
+      - ядерный удар
+      - статья 5
+      - всеобщ* мобилизац*
+      - состояние войны
+      - объявление войны
+      - наземная операция
+      - наземное вторжение
+      - закрытие пролива
+      - ЧС международного значения
+      - чрезвычайная ситуация международного значения
+      - общенациональный локдаун
+      - военное положение
+      - массовая эвакуация
+      - баллистическая атака
+      - применение ядерного оружия
+      - признани* независимост*
+      - признал* независимост*
+      - признает* независимост*
+      - признани* ДНР
+      - признани* ЛНР
+      - признани* Донецкой
+      - признани* Луганской
+    S2:
+      - массированный удар
+      - массированная атака
+      - пуск баллистической
+      - эвакуация посольства
+      - эвакуирова* посольств*
+      - отзыв посла
+      - ядерн* учения
+      - уровень тревоги повышен
+      - воздушное пространство закрыто
+      - граница закрыта
+      - частичная мобилизация
+      - призыв резервистов
+      - резервисты призваны
+      - первый случай
+      - вспышка
+      - карантин
+      - пандемия
+      - устойчивая передача от человека к человеку
+      - гуманитарный коридор
+      - бесполетная зона
+      - сбит самолет
+      - сбит вертолет
+      - атака дронов
+      - ракетный удар
+      - авиаудар
+      - приказ об эвакуации
+      - чрезвычайное положение
+      - санкции в ответ
+      - вооружённых сил за рубежом
+      - миротворческ* мисси*
+      - 're:\bпереброс\w*[^.!?]{0,60}\b(?:сил\w*|войск\w*|комплекс\w*|патриот\w*|зрк|авианос\w*|бригад\w*|батальон\w*|дивизи\w*|полк\w*|техник\w*|ракет\w*|вооруж\w*)'
+      - 're:\bперебрасыва\w*[^.!?]{0,60}\b(?:сил\w*|войск\w*|комплекс\w*|патриот\w*|зрк|авианос\w*|бригад\w*|батальон\w*|дивизи\w*|полк\w*|техник\w*|ракет\w*|вооруж\w*)'
+      - передислокац*
+      - 're:\bнаращива\w*\s+военн\w*\s+присутстви\w*'
+      - 're:\bусилени\w*\s+группировк\w*'
+      - авианосн* группировк*
+      - 're:\bзрк\s+патриот\b'
+    S1:
+      - пограничный инцидент
+      - нарушение границы
+      - беспилотник над
+      - провокация
+      - ультиматум
+      - пакет санкций
+      - передвижение войск
+      - выход из договора
+      - кибератака
+      - диверсия
+      - взрыв
+      - протесты
+      - комендантский час
+      - военные учения
+      - морские учения
+      - перехвачен
+      - нарушение воздушного пространства
+
+  he:
+    S3:
+      - תקיפה גרעינית
+      - נשק גרעיני
+      - סעיף 5
+      - גיוס כללי
+      - מצב מלחמה
+      - הכרזת מלחמה
+      - מבצע קרקעי
+      - פלישה קרקעית
+      - סגירת מיצר הורמוז
+      - מצב חירום בריאותי בינלאומי
+      - סגר ארצי
+      - ממשל צבאי
+      - פינוי המוני
+      - שיגור טילים בליסטיים
+    S2:
+      - תקיפה מסיבית
+      - מתקפה מסיבית
+      - פינוי שגרירות
+      - החזרת שגריר
+      - תרגיל גרעיני
+      - רמת הכוננות הועלתה
+      - המרחב האווירי נסגר
+      - הגבול נסגר
+      - גיוס חלקי
+      - גיוס מילואים
+      - מקרה ראשון
+      - התפרצות
+      - בידוד
+      - מגפה
+      - הדבקה מאדם לאדם
+      - מסדרון הומניטרי
+      - אזור אסור לטיסה
+      - מטוס הופל
+      - תקיפת כטב"ם
+      - ירי רקטות
+      - תקיפה אווירית
+      - צו פינוי
+      - מצב חירום
+      - פריסת כוחות
+      - פריסת סוללות
+      - תגבור כוחות
+      - שליחת כוחות
+      - נושאת מטוסים
+      - 're:\bפטריוט\b'
+    S1:
+      - תקרית גבול
+      - חדירת כטב"ם
+      - פרובוקציה
+      - אולטימטום
+      - חבילת סנקציות
+      - תנועת כוחות
+      - פריסה מחדש
+      - יציאה מהסכם
+      - מתקפת סייבר
+      - חבלה
+      - פיצוץ
+      - מחאות
+      - עוצר
+      - תרגיל צבאי
+      - יורט
+      - הפרת המרחב האווירי
+
+# Narrative/feature headlines: retrospective or explainer pieces, not event bulletins.
+# Matched against the title only, regardless of source tier; tripwires still bypass.
+feature_headlines:
+  en:
+    - 're:^how\b.{0,140}\b(?:changed|transformed|reshaped|redefined|remade|altered|revived|is changing|are changing)\b'
+    - 're:^what\b.{0,100}\b(?:taught|teaches|revealed|changed)\b'
+    - 're:^(?:\d+|two|three|four|five|six|seven|eight|nine|ten)\s+(?:years?|decades?)\s+(?:after|later)\b'
+    - 're:^(?:years?|decades?)\s+(?:after|later)\b'
+    - lessons from
+    - lessons learned
+    - what we learned
+    - anniversary
+    - retrospectiv*
+    - oral history
+    - inside story
+    - behind the scenes
+  ru:
+    - 're:^как\b.{0,140}\b(?:изменил|изменила|изменило|преобразил|перестроил|повлиял)\b'
+    - 're:^спустя\b'
+    - годовщин*
+    - ретроспектив*
+    - история одного
+    - извлеченные уроки
+    - уроки из
+
+# Research publications (studies, analyses, reviews) are not operational alerts.
+research_headlines:
+  en:
+    - 're:^research\s*:'
+    - 're:^research (?:and analysis|shows|finds|suggests|reveals|indicates)\b'
+    - 're:^(?:a\s+)?(?:new\s+)?study\b'
+    - 're:^(?:survey|analysis)\s*:'
+    - 're:^(?:qualitative|quantitative|retrospective|prospective)\s+(?:study|analysis)\b'
+    - 're:^(?:systematic\s+review|meta[- ]analysis|literature\s+review|case\s+study)\b'
+    - 're:^(?:scientists|researchers)\b'
+    - 're:\b(?:study|survey|analysis|research)\s+(?:finds|found|shows|showed|suggests|reveals|revealed|indicates)\b'
+    - 're:\baccording to (?:a|the|this) (?:new\s+|recent\s+)?(?:study|analysis|research|survey)\b'
+    - 're:\bpeer[- ]reviewed\b'
+    - 're:\bpreprint\b'
+    - 're:\bpublished in (?:the\s+)?(?:journal|lancet|nature|science|bmj|jama|nejm|plos)\b'
+    - 're:\bcollaborat\w*\s+to\s+(?:develop|standardize|standardise|advance|strengthen)\b'
+    - 're:\b(?:standardized|standardised)\s+(?:score|framework|guideline|protocol|tool|approach)\b'
+    - 're:\bvaccine (?:research|development|pipeline)\b'
+  ru:
+    - 're:^исследование\b'
+    - 're:^исследователи\b'
+    - 're:^ученые\b'
+    - 're:^(?:качественный|количественный|ретроспективный|проспективный)\s+анализ\b'
+    - 're:^(?:систематический\s+обзор|мета-?анализ|обзор\s+литературы)\b'
+    - 're:\bпо данным (?:нового\s+)?(?:исследования|анализа|обзора)\b'
+    - 're:\bв журнале\b'
+    - 're:\bпрепринт\w*\b'
+    - 're:\bрецензируем\w*\b'
+
+# Hard negatives (B1). Skipped for tier-0 sources and for events with a strong fact verb (B2).
+negative:
+  en:
+    - exercise
+    - drill
+    - simulation
+    - war game
+    - war-game
+    - scenario
+    - anniversary
+    - commemorat*
+    - documentary
+    - film
+    - trailer
+    - retrospectiv*
+    - opinion
+    - analysis
+    - op-ed
+    - could
+    - may
+    - might
+    - warns of
+    - warning of
+    - risk of
+    - fears of
+    - fear of
+    - "re:if .* were to"
+    - hypothetic*
+    - tabletop
+    - think tank
+    - podcast
+    - explainer
+    - what if
+    - would be
+    - has warned
+    - warned that
+  ru:
+    - учени*
+    - тренировк*
+    - сценарий
+    - годовщин*
+    - мнение
+    - аналитик*
+    - может привести
+    - могли бы
+    - риск возникновения
+    - угроза возникновения
+    - не исключает
+    - гипотетич*
+    - документальн*
+    - фильм
+    - трейлер
+    - ретроспектив*
+    - эксперты считают
+    - предупредил о
+    - предупреждает о
+  he:
+    - תרגיל
+    - תרגול
+    - סימולציה
+    - תרחיש
+    - יום השנה
+    - דעה
+    - ניתוח
+    - עלול
+    - חשש
+    - סרט
+    - תחקיר
+    - פרשנות
+
+# Factuality detector (B2): past/perfect action verbs.
+fact_verbs:
+  en:
+    - launched
+    - struck
+    - attacked
+    - invaded
+    - crossed
+    - declared
+    - invoked
+    - activated
+    - closed
+    - ordered
+    - evacuated
+    - mobilized
+    - mobilised
+    - seized
+    - shot down
+    - intercepted
+    - killed
+    - fired
+    - hit
+    - damaged
+    - destroyed
+    - captured
+    - announced
+    - confirmed
+    - approved
+    - signed
+    - imposed
+    - suspended
+    - banned
+    - expelled
+    - withdrawn
+    - deployed
+    - redeployed
+    - sent
+    - detected
+    - reported
+  ru:
+    - нанес*
+    - нанёс*
+    - атакова*
+    - вторг*
+    - пересек*
+    - объяви*
+    - закры*
+    - приказа*
+    - эвакуир*
+    - мобилизов*
+    - сби*
+    - уничтож*
+    - погиб*
+    - запусти*
+    - выпусти*
+    - удари*
+    - захвати*
+    - повреди*
+    - разруши*
+    - подтверди*
+    - ввел*
+    - ввёл*
+    - подписал*
+    - запретил*
+    - приостанови*
+    - выдвори*
+    - разверну*
+    - зафиксирова*
+    - переброси*
+    - переброшен*
+    - переброск*
+    - передислоцир*
+  he:
+    - תקף
+    - תקפה
+    - שיגר
+    - שיגרה
+    - פלש
+    - חצה
+    - הכריז
+    - הכריזה
+    - הפעיל
+    - סגר
+    - הורה
+    - פינה
+    - גויס
+    - גויסו
+    - השתלט
+    - הופל
+    - יורט
+    - נהרג
+    - נהרגו
+    - נפגע
+    - הושמד
+    - אישר
+    - חתם
+    - הטיל
+    - השעה
+    - אסר
+    - פרס
+    - שלח
+    - שלחה
+    - נפרסו
+
+stopwords:
+  en: [a, an, the, of, in, "on", at, to, for, from, by, with, and, or, but, is, are, was, were, be, been, being, has, have, had, it, its, this, that, these, those, as, after, before, over, under, into, about, against, says, said, new, report, reports, update, updated, live, news]
+  ru: [и, в, во, на, с, со, по, к, ко, о, об, от, до, из, за, для, при, как, что, это, был, была, были, будет, не, ни, же, ли, бы, а, но, или, уже, еще, ещё, после, перед, над, под, через, сообщает, сообщил, сообщили, новости, срочно]
+  he: [של, את, על, עם, זה, זו, הוא, היא, הם, הן, היה, הייתה, היו, לא, כן, או, אבל, כי, אחרי, לפני, לפי, כמו, חדשות, דיווח]
+
+# Category hints used when a source does not declare one.
+category_terms:
+  earthquake: [earthquake, quake, seismic, seism*, землетряс*, רעידת אדמה, aftershock, афтершок]
+  tsunami: [tsunami, цунами, צונאמי]
+  volcano: [volcano, volcanic, eruption, ash, lava, вулкан*, извержен*, הר געש, התפרצות]
+  pandemic: [outbreak, virus, pathogen, pandemic, epidemic, influenza, cholera, ebola, measles, вспышка, вирус, пандемия, эпидем*, מגפה, התפרצות, נגיף]
+  eu_ru: [nato, kremlin, russia, ukraine, poland, baltic, mobilization, мобилизац*, россия, украина, нато, кремль, רוסיה, אוקראינה, נאט"ו]
+  israel: [israel, gaza, lebanon, hezbollah, iran, idf, siren, rocket, israeli, израил*, газа, ливан, иран, רקטה, צה"ל, ישראל]
+  gulf: [hormuz, tanker, saudi, aramco, uae, qatar, kuwait, bahrain, oman, red sea, ормуз*, танкер, саудов*, הורמוז, סעודיה]

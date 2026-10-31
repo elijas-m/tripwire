@@ -1,0 +1,58 @@
+[Unit]
+Description=Tripwire global event early-warning monitor
+Documentation=file:///opt/tripwire/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+NotifyAccess=main
+WatchdogSec=300
+User=tripwire
+Group=tripwire
+WorkingDirectory=/opt/tripwire
+EnvironmentFile=-/etc/tripwire/secrets.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=MALLOC_ARENA_MAX=2
+StateDirectory=tripwire
+StateDirectoryMode=0750
+ExecStart=/opt/tripwire/.venv/bin/python -m tripwire --config-root /opt/tripwire
+Restart=always
+RestartSec=10
+OOMPolicy=restart
+TimeoutStopSec=30
+KillSignal=SIGTERM
+UMask=0077
+CPUQuota=30%
+
+# Hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ReadWritePaths=/var/lib/tripwire
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# NFR: <=120 MB RSS typical; caps follow §13 (high 150M, max 200M).
+MemoryHigh=150M
+MemoryMax=200M
+TasksMax=64
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

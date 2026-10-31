@@ -1,0 +1,45 @@
+# 06.02.2023 — землетрясение в Турции M7.8. Ожидание §15: CRITICAL ≤ 10 мин.
+id: 2023-02-06-turkey-quake
+name: "06.02.2023 — землетрясение в Турции M7.8"
+expect: CRITICAL
+max_delay_min: 10
+provenance: >-
+  Параметры и заголовок — из архивного события USGS us6000jllz (FDSN event API):
+  M7.8, PAGER red, 01:17:34 UTC, 37.2256N 37.0143E, глубина 10 км. Сводка GDACS —
+  реконструкция.
+events:
+  - at: "2023-02-06T01:17:34Z"
+    source: usgs_sig_hour
+    tier0: true
+    title: "M 7.8 - Pazarcik earthquake, Kahramanmaras earthquake sequence"
+    body: >-
+      Significant earthquake. M 7.8 at 37.226N 37.014E, depth 10 km. PAGER alert
+      level: red. Estimated fatalities and economic losses are likely.
+    category: earthquake
+    theater: NATURE
+    country: TR
+    lat: 37.2256
+    lon: 37.0143
+    payload:
+      mag: 7.8
+      depth: 10.0
+      alert: red
+      place: "Pazarcik earthquake, Kahramanmaras earthquake sequence"
+      tsunami: 0
+      sig: 2910
+      mmi: 9.5
+    url: "https://earthquake.usgs.gov/earthquakes/eventpage/us6000jllz"
+    origin_domain: earthquake.usgs.gov
+  - at: "2023-02-06T01:22:00Z"
+    source: gdacs_rss
+    title: "GDACS: earthquake in Turkey, red alert"
+    body: >-
+      GDACS issued a red earthquake alert for central Turkey. Estimated population
+      within 100 km of the epicentre exceeds 4 million.
+    category: earthquake
+    theater: NATURE
+    country: TR
+    lat: 37.2256
+    lon: 37.0143
+    url: "https://www.gdacs.org/report.aspx?eventid=1000002"
+    origin_domain: gdacs.org

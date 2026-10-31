@@ -1,0 +1,44 @@
+# Delivery channels. Secrets come from /etc/tripwire/secrets.env (never from this file).
+version: 1
+
+telegram:
+  # Supergroup with forum topics enabled. chat_id is negative: -100xxxxxxxxxx
+  chat_id_env: TELEGRAM_CHAT_ID
+  topics:
+    CRITICAL: {thread_id_env: TG_THREAD_CRITICAL, title: "⚠️ CRITICAL"}
+    WARNING:  {thread_id_env: TG_THREAD_WARNING,  title: "🟠 Warning"}
+    NATURE:   {thread_id_env: TG_THREAD_NATURE,   title: "🌍 Nature"}
+    HEALTH:   {thread_id_env: TG_THREAD_HEALTH,   title: "🦠 Health"}
+    DIGEST:   {thread_id_env: TG_THREAD_DIGEST,   title: "📊 Digest & Status"}
+    TEST:     {thread_id_env: TG_THREAD_TEST,     title: "🧪 Test"}
+  # Admins allowed to use commands. Comma-separated user_id list in env.
+  admins_env: TRIPWIRE_ADMINS
+  parse_mode: HTML
+  disable_web_page_preview: true
+  mention_admins_on_second_reminder: true
+
+backup:
+  # Used when Telegram fails 3 times in a row (see config.yaml telegram.backup_fail_threshold).
+  ntfy:
+    enabled: true
+    base_url: https://ntfy.sh
+    topic_env: NTFY_TOPIC
+    priority_critical: 5
+    priority_warning: 4
+  smtp:
+    enabled: false
+    host: ""
+    port: 587
+    starttls: true
+    user_env: SMTP_USER
+    password_env: SMTP_PASSWORD
+    from: ""
+    to: []
+
+# Topic selection rules (first match wins; NATURE/HEALTH override theater).
+routing:
+  - {match_theater: NATURE, topic: NATURE}
+  - {match_theater: PANDEMIC, topic: HEALTH}
+  - {match_level: CRITICAL, topic: CRITICAL}
+  - {match_level: WARNING, topic: WARNING}
+  - {default: DIGEST}

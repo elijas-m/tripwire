@@ -1,0 +1,32 @@
+# 11.03.2020 — ВОЗ объявляет пандемию. Ожидание §15: CRITICAL.
+id: 2020-03-11-pandemic
+name: "11.03.2020 — ВОЗ объявила пандемию"
+expect: CRITICAL
+provenance: >-
+  Дословная цитата из вступительного слова Генерального директора ВОЗ на брифинге
+  11.03.2020: "We have therefore made the assessment that COVID-19 can be
+  characterized as a pandemic."
+events:
+  - at: "2020-03-11T17:00:00Z"
+    source: who_news_rss
+    tier0: true
+    title: "WHO Director-General's opening remarks at the media briefing on COVID-19 - 11 March 2020"
+    body: >-
+      We have therefore made the assessment that COVID-19 can be characterized as a
+      pandemic. Pandemic is not a word to use lightly or carelessly. It is a word that,
+      if misused, can cause unreasonable fear, or unjustified acceptance that the fight
+      is over.
+    category: pandemic
+    theater: PANDEMIC
+    url: "https://www.who.int/director-general/speeches/detail/who-director-general-s-opening-remarks-at-the-media-briefing-on-covid-19---11-march-2020"
+    origin_domain: who.int
+  - at: "2020-03-11T17:20:00Z"
+    source: who_don_odata
+    title: "Coronavirus disease 2019 (COVID-19) — situation report 51"
+    body: >-
+      The WHO Director-General characterized COVID-19 as a pandemic at the media
+      briefing on 11 March 2020.
+    category: pandemic
+    theater: PANDEMIC
+    url: "https://www.who.int/emergencies/disease-outbreak-news/item/2020-DON252"
+    origin_domain: who.int

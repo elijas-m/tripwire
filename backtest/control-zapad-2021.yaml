@@ -1,0 +1,52 @@
+# Контроль ложных §15: учения Запад-2021 не должны превышать WATCH.
+id: control-zapad-2021
+name: "Контроль: Запад-2021"
+expect: WATCH
+control: true
+provenance: >-
+  Реконструкция по официальным сообщениям НАТО, МО РФ и РИА Новости
+  о совместном стратегическом учении «Запад-2021» (10–16.09.2021).
+events:
+  - at: "2021-09-10T08:00:00Z"
+    source: mod_russia_tg
+    tier0: true
+    title: "Совместное стратегическое учение «Запад-2021» началось в Беларуси и России"
+    body: >-
+      На полигонах Западного военного округа и Вооружённых сил Беларуси началось
+      совместное стратегическое учение «Запад-2021». В мероприятии задействованы
+      около 200 тысяч военнослужащих, авиация и флот.
+    category: eu_ru
+    theater: EU_RU
+    country: BY
+    lat: 53.9
+    lon: 27.57
+    url: "https://t.me/s/mod_russia/9000"
+    origin_domain: t.me
+  - at: "2021-09-10T09:30:00Z"
+    source: ria_rss
+    title: "«Запад-2021»: началась активная фаза учений"
+    body: >-
+      Активная фаза совместных стратегических учений «Запад-2021» проходит на
+      полигонах в России и Беларуси. Минобороны сообщает о розыгрыше оборонительных
+      и наступательных сценариев.
+    category: eu_ru
+    theater: EU_RU
+    country: RU
+    lat: 55.75
+    lon: 37.62
+    url: "https://ria.ru/20210910/zapad-1750000000.html"
+    origin_domain: ria.ru
+  - at: "2021-09-10T11:00:00Z"
+    source: nato_news
+    title: "NATO closely monitoring Russia-Belarus exercise Zapad 2021"
+    body: >-
+      NATO is closely monitoring the joint Russia-Belarus military exercise Zapad
+      2021. Allies remain vigilant; the exercise is a scheduled drill and does not
+      change NATO's defensive posture.
+    category: eu_ru
+    theater: EU_RU
+    country: BE
+    lat: 50.85
+    lon: 4.35
+    url: "https://www.nato.int/cps/en/natohq/news_187000.htm"
+    origin_domain: nato.int

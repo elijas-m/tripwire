@@ -1,0 +1,153 @@
+levels:
+  watch: 3.0
+  warning: 8.0
+  critical: 16.0
+
+source_trust:
+  "0": 1.0
+  "1": 0.8
+  "2": 0.5
+  "3": 0.25
+
+factuality:
+  fact: 1.0
+  no_fact: 0.3
+
+geo:
+  inside: 1.0
+  periphery: 0.3
+  outside: 0.0
+
+novelty:
+  new: 1.0
+  duplicate: 0.4
+
+independence:
+  warning_sources: 2
+  critical_sources: 3
+  critical_min_tier01: 1
+  simhash_hamming_dup: 6
+
+halflife_hours:
+  EU_RU: 12
+  ISRAEL: 8
+  GULF: 12
+  PANDEMIC: 72
+  NATURE: 6
+  MARKETS: 6
+
+hysteresis:
+  down_factor: 0.6
+  hours: 6
+  pandemic_hours: 24
+
+cooldowns:
+  critical_minutes: 60
+  warning_minutes: 15
+  warning_theater_minutes: 60
+  tripwire_minutes: 60
+  cluster_window_hours: 12
+  aftershock_radius_km: 150
+  aftershock_window_hours: 72
+
+modifiers:
+  market_shock: 1.25
+  ppi_anomaly: 1.15
+  night: 1.2
+  multi_theater: 1.2
+  multi_theater_min_level: WATCH
+
+market_shock:
+  # 24h moves (percent) that make the markets indicator ANOMALY.
+  brent_surge_pct: 7.0
+  brent_spike_pct: 4.0
+  gold_rally_pct: 3.0
+  metal_drop_pct: 3.0
+  # Gold/silver drops count only when VIX grows at least this much (24h).
+  vix_confirm_pct: 20.0
+  vix_spike_pct: 30.0
+  vix_high: 35.0
+  fx_drop_pct: 5.0
+
+radiation:
+  # Safecast µSv/h indicator: a device spikes when its recent reading exceeds
+  # max(baseline * spike_factor, baseline + spike_delta_usv).
+  baseline_hours: 3
+  recent_minutes: 60
+  min_samples: 5
+  spike_factor: 3.0
+  spike_delta_usv: 0.5
+  extreme_usv: 10.0
+  max_plausible_usv: 100.0
+
+diplo_evac:
+  # Embassy/consulate evacuation indicator over stored event titles.
+  # ANOMALY when >= anomaly_countries countries within country_window_hours
+  # or >= anomaly_clusters distinct events within window_hours.
+  window_hours: 168
+  country_window_hours: 72
+  elevated_clusters: 1
+  anomaly_clusters: 3
+  anomaly_countries: 2
+  max_matches: 5
+
+domain:
+  earthquake:
+    ignore_below: 6.0
+    watch: 6.0
+    warning: 6.5
+    critical: 7.5
+    shallow_km: 70
+    population_critical: 1000000
+    pager_red: 20.0
+    pager_orange: 10.0
+    pager_yellow: 4.0
+    tsunami_warning: 20.0
+    swarm_mag: 4.5
+    swarm_count: 10
+    swarm_window_hours: 24
+  volcano:
+    orange_points: 6.0
+    red_points: 20.0
+    high_consequence_orange: 10.0
+    ash_warning_ft: 30000
+    ash_critical_ft: 45000
+    vei4_points: 20.0
+    evacuation_points: 20.0
+  pandemic:
+    new_pathogen: 4.0
+    h2h: 6.0
+    three_countries: 5.0
+    high_cfr: 5.0
+    border_closure: 6.0
+    ihr_committee: 8.0
+    watchlist_points: 4.0
+  eu_ru:
+    embassy_evac: 5.0
+    border_section_closed: 3.0
+    region_airspace_closed: 5.0
+    airspace_violation: 4.0
+    airspace_shootdown: 7.0
+    nrf_activation: 6.0
+    reservists: 6.0
+    gps_jamming: 2.0
+    citizens_evac: 5.0
+    civil_flights_drop: 7.0
+    vipplane_activity: 2.0
+    ukraine_mass_alerts: 3.0
+  israel:
+    oref_center: 4.0
+    ballistic_launch: 8.0
+    ben_gurion_closed: 7.0
+    reservists_30k: 7.0
+    nuclear_strike: 9.0
+    iaea_access_loss: 5.0
+  gulf:
+    oil_infra_attack: 8.0
+    vessel_incident: 3.0
+    vessel_seizure: 6.0
+    brent_15pct: 6.0
+  force_projection:
+    # Points before trust/geo. A deployment into a theater matters even when
+    # the actor is based outside it (geo periphery 0.3).
+    points: 8.0

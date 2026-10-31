@@ -1,0 +1,960 @@
+# Operational source registry (Stage 0 verified 2026-10-24).
+# type: rss | json | html | ws | telegram | market
+# tier: 0 official fact | 1 gov/intergov press | 2 agencies/official channels | 3 OSINT/markets
+# adaptive: intervals shrink 3-5x while the theater is WARNING/CRITICAL.
+version: 1
+
+defaults:
+  method: GET
+  timeout_s: 25
+  max_items: 30
+  jitter: 0.2
+  adaptive: true
+  lang: en
+  max_age_hours: 48
+  silence_hours: 72
+  headers:
+    Accept-Encoding: gzip, deflate
+    Accept-Language: en-US,en;q=0.9,ru;q=0.8,he;q=0.7
+
+sources:
+  # ---------------- Seismic / tsunami / volcano ----------------
+  - id: usgs_sig_hour
+    name: "USGS Significant (1h)"
+    type: json
+    parser: usgs_geojson
+    url: "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_hour.geojson"
+    tier: 0
+    theater: NATURE
+    category: earthquake
+    interval_s: 60
+    max_age_hours: 3
+    adaptive: false
+    lang: en
+
+  - id: usgs_45_hour
+    name: "USGS M4.5+ (1h)"
+    type: json
+    parser: usgs_geojson
+    url: "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_hour.geojson"
+    tier: 0
+    theater: NATURE
+    category: earthquake
+    interval_s: 120
+    max_age_hours: 3
+    adaptive: false
+
+  - id: usgs_45_day
+    name: "USGS M4.5+ (24h)"
+    type: json
+    parser: usgs_geojson
+    url: "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson"
+    tier: 0
+    theater: NATURE
+    category: earthquake
+    interval_s: 300
+    max_age_hours: 24
+
+  - id: emsc_ws
+    name: "EMSC WebSocket"
+    type: ws
+    parser: emsc_ws
+    url: "wss://www.seismicportal.eu/standing_order/websocket"
+    tier: 0
+    theater: NATURE
+    category: earthquake
+    interval_s: 0
+    enabled: false          # enabled after Stage-1 live format confirmation
+    lang: en
+
+  - id: emsc_rest
+    name: "EMSC FDSN (latest)"
+    type: json
+    parser: emsc_geojson
+    url: "https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=20&orderby=time"
+    tier: 0
+    theater: NATURE
+    category: earthquake
+    interval_s: 600
+    max_age_hours: 6
+
+  - id: ingv_fdsn
+    name: "INGV FDSN M4+"
+    type: json
+    parser: ingv_geojson
+    url: "https://webservices.ingv.it/fdsnws/event/1/query?format=json&limit=20&orderby=time&minmag=4"
+    tier: 1
+    theater: NATURE
+    category: earthquake
+    interval_s: 600
+    max_age_hours: 6
+    lang: it
+
+  - id: noaa_ptwc_atom
+    name: "NOAA PTWC atom"
+    type: rss
+    parser: tsunami_atom
+    url: "https://www.tsunami.gov/events/xml/PAAQAtom.xml"
+    tier: 0
+    theater: NATURE
+    category: tsunami
+    interval_s: 120
+    max_age_hours: 24
+    adaptive: false
+
+  - id: noaa_ntwc_atom
+    name: "NOAA NTWC atom"
+    type: rss
+    parser: tsunami_atom
+    url: "https://www.tsunami.gov/events/xml/PHEBAtom.xml"
+    tier: 0
+    theater: NATURE
+    category: tsunami
+    interval_s: 120
+    max_age_hours: 24
+    adaptive: false
+
+  - id: gdacs_rss
+    name: "GDACS RSS"
+    type: rss
+    parser: gdacs_rss
+    url: "https://www.gdacs.org/xml/rss.xml"
+    tier: 1
+    theater: NATURE
+    category: disaster
+    interval_s: 7200
+    max_age_hours: 72
+    max_items: 40
+
+  - id: usgs_hans_recent
+    name: "USGS HANS (volcano notices)"
+    type: json
+    parser: hans_json
+    url: "https://volcanoes.usgs.gov/hans-public/api/notice/recent/all/1"
+    tier: 0
+    theater: NATURE
+    category: volcano
+    interval_s: 900
+    max_age_hours: 48
+
+  - id: vaac_washington
+    name: "VAAC Washington"
+    type: html
+    parser: vaac_messages
+    url: "https://www.ospo.noaa.gov/products/atmosphere/vaac/messages.html"
+    tier: 0
+    theater: NATURE
+    category: volcano
+    interval_s: 900
+    max_age_hours: 24
+
+  - id: vaac_darwin
+    name: "VAAC Darwin"
+    type: html
+    parser: html_links
+    enabled: false
+    url: "http://www.bom.gov.au/aviation/volcanic-ash/"
+    base_url: "http://www.bom.gov.au"
+    link_pattern: '(?i)(volcanic|ash|advisory)'
+    tier: 0
+    theater: NATURE
+    category: volcano
+    interval_s: 1800
+    max_age_hours: 24
+
+  - id: vaac_tokyo
+    name: "VAAC Tokyo"
+    type: html
+    parser: vaac_tokyo
+    url: "https://ds.data.jma.go.jp/svd/vaac/data/vaac_list.html"
+    tier: 0
+    theater: NATURE
+    category: volcano
+    interval_s: 3600
+    max_age_hours: 24
+    lang: ja
+
+  - id: vaac_london
+    name: "VAAC London (Met Office)"
+    type: html
+    parser: html_links
+    url: "https://www.metoffice.gov.uk/services/transport/aviation/regulated"
+    base_url: "https://www.metoffice.gov.uk"
+    link_pattern: '(?i)(advisory|vaac|volcanic)'
+    tier: 0
+    theater: NATURE
+    category: volcano
+    interval_s: 1800
+    max_age_hours: 24
+    enabled: false          # page is JS-driven; keep as reference
+
+  - id: vaac_toulouse
+    name: "VAAC Toulouse"
+    type: html
+    parser: vaac_list
+    url: "https://vaac.meteo.fr/"
+    base_url: "https://vaac.meteo.fr"
+    link_pattern: '(?i)(advisory|vaac|volcanic|\.pdf$|\.html$)'
+    tier: 0
+    theater: NATURE
+    category: volcano
+    interval_s: 7200
+    max_age_hours: 24
+    lang: fr
+
+  - id: imo_earthquakes
+    name: "Iceland Met Office earthquakes"
+    type: html
+    parser: imo_quakes
+    url: "https://en.vedur.is/earthquakes-and-volcanism/earthquakes/"
+    tier: 1
+    theater: NATURE
+    category: earthquake
+    interval_s: 1800
+    max_age_hours: 24
+
+  - id: bmkg_magma
+    name: "BMKG MAGMA volcano status"
+    type: html
+    parser: volcano_status_html
+    url: "https://magma.esdm.go.id/"
+    tier: 1
+    theater: NATURE
+    category: volcano
+    interval_s: 1800
+    max_age_hours: 48
+    lang: id
+
+  - id: jma_volcano
+    name: "JMA volcano warnings"
+    type: html
+    parser: volcano_status_html
+    url: "https://www.jma.go.jp/bosai/volcano/"
+    tier: 0
+    theater: NATURE
+    category: volcano
+    interval_s: 1800
+    max_age_hours: 48
+    lang: ja
+
+  - id: phivolcs_feed
+    name: "PHIVOLCS feed"
+    type: rss
+    parser: rss
+    url: "https://www.phivolcs.dost.gov.ph/feed/"
+    tier: 0
+    theater: NATURE
+    category: volcano
+    interval_s: 1800
+    max_age_hours: 48
+
+  # ---------------- Health ----------------
+  - id: who_news_rss
+    name: "WHO News"
+    type: rss
+    parser: rss
+    url: "https://www.who.int/rss-feeds/news-english.xml"
+    tier: 0
+    theater: PANDEMIC
+    category: pandemic
+    interval_s: 3600
+    max_age_hours: 72
+    max_items: 30
+
+  - id: who_don_odata
+    name: "WHO Disease Outbreak News (OData)"
+    type: json
+    parser: who_don_odata
+    url: "https://www.who.int/api/news/diseaseoutbreaknews?$orderby=PublicationDateAndTime%20desc&$top=15&$select=Title,PublicationDateAndTime,ItemDefaultUrl,DonId,Summary"
+    tier: 0
+    theater: PANDEMIC
+    category: pandemic
+    interval_s: 1200
+    max_age_hours: 72
+
+  - id: gnews_who
+    name: "Google News: WHO"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=site%3Awho.int%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    origin_domains: [who.int]
+    tier: 0
+    theater: PANDEMIC
+    category: pandemic
+    interval_s: 1200
+    max_age_hours: 72
+
+  - id: cdc_han_rss
+    name: "CDC HAN"
+    type: rss
+    parser: rss
+    url: "https://tools.cdc.gov/api/v2/resources/media/316422.rss"
+    tier: 0
+    theater: PANDEMIC
+    category: pandemic
+    interval_s: 3600
+    max_age_hours: 72
+
+  - id: cdc_travel_rss
+    name: "CDC Travel Health Notices"
+    type: rss
+    parser: rss
+    url: "https://wwwnc.cdc.gov/travel/rss/notices.xml"
+    tier: 0
+    theater: PANDEMIC
+    category: pandemic
+    interval_s: 3600
+    max_age_hours: 72
+
+  - id: ukhsa_atom
+    name: "UKHSA news"
+    type: rss
+    parser: rss
+    url: "https://www.gov.uk/government/organisations/uk-health-security-agency.atom"
+    tier: 1
+    theater: PANDEMIC
+    category: pandemic
+    interval_s: 7200
+    max_age_hours: 72
+
+  - id: ecdc_news
+    name: "ECDC newsroom"
+    type: html
+    parser: html_links
+    url: "https://www.ecdc.europa.eu/en/news-events"
+    base_url: "https://www.ecdc.europa.eu"
+    link_pattern: '(?i)/en/(news-events|all-news)'
+    tier: 0
+    theater: PANDEMIC
+    category: pandemic
+    interval_s: 3600
+    max_age_hours: 72
+
+  - id: chinacdc_weekly
+    name: "China CDC Weekly"
+    type: html
+    parser: html_links
+    url: "https://weekly.chinacdc.cn/en/"
+    base_url: "https://weekly.chinacdc.cn"
+    link_pattern: '(?i)(article|issue)'
+    tier: 2
+    theater: PANDEMIC
+    category: pandemic
+    interval_s: 7200
+    max_age_hours: 96
+
+  # ---------------- Europe / Russia / NATO ----------------
+  - id: nato_news
+    name: "NATO Newsroom"
+    type: html
+    parser: html_links
+    url: "https://www.nato.int/en/news-and-events/articles/news"
+    base_url: "https://www.nato.int"
+    link_pattern: '(?i)/en/news-and-events/articles/news/20\d\d/'
+    tier: 0
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 600
+    max_age_hours: 48
+    min_title_len: 15
+
+    enabled: false
+  - id: gnews_nato
+    name: "Google News: NATO"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=site%3Anato.int%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    origin_domains: [nato.int]
+    tier: 0
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 900
+    max_age_hours: 48
+
+  - id: kremlin_events
+    name: "Kremlin events"
+    type: html
+    parser: html_links
+    url: "http://kremlin.ru/events/president/news"
+    base_url: "http://kremlin.ru"
+    link_pattern: '(?i)/events/president/news/\d+'
+    tier: 0
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 600
+    max_age_hours: 48
+    lang: ru
+    min_title_len: 10
+
+  - id: kremlin_acts
+    name: "Kremlin acts"
+    type: html
+    parser: html_links
+    url: "http://kremlin.ru/acts/news"
+    base_url: "http://kremlin.ru"
+    link_pattern: '(?i)/acts/news/\d+'
+    tier: 0
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 600
+    max_age_hours: 48
+    lang: ru
+    min_title_len: 10
+
+  - id: mod_russia_tg
+    name: "MoD Russia (Telegram)"
+    type: telegram
+    parser: telegram_html
+    url: "https://t.me/s/mod_russia"
+    tier: 1
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 900
+    max_age_hours: 48
+    lang: ru
+
+  - id: ria_rss
+    name: "RIA Novosti"
+    type: rss
+    parser: rss
+    url: "https://ria.ru/export/rss2/archive/index.xml"
+    tier: 2
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 1800
+    max_age_hours: 48
+    max_items: 30
+    lang: ru
+
+  - id: interfax_rss
+    name: "Interfax"
+    type: rss
+    parser: rss
+    url: "https://www.interfax.ru/rss"
+    tier: 2
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 600
+    max_age_hours: 48
+    max_items: 30
+    lang: ru
+
+  # TEMP: test source, added 2026-10-28 on request. Remove after the trial.
+  - id: aftershock_rss
+    name: "AfterShock"
+    type: rss
+    parser: rss
+    url: "https://aftershock.news/?q=rss/aftershock.xml"
+    tier: 3
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 1800
+    max_age_hours: 48
+    max_items: 20
+    lang: ru
+
+  - id: dod_rss
+    name: "US DoD releases"
+    type: rss
+    parser: rss
+    url: "https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=10"
+    tier: 0
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 600
+    max_age_hours: 48
+
+  - id: state_travel_rss
+    name: "US State Dept travel advisories"
+    type: rss
+    parser: rss
+    url: "https://travel.state.gov/_res/rss/TAsTWs.xml"
+    tier: 0
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 43200
+    max_age_hours: 96
+    max_items: 30
+
+  - id: fcdo_atom
+    name: "UK FCDO travel advice"
+    type: rss
+    parser: rss
+    url: "https://www.gov.uk/foreign-travel-advice.atom"
+    tier: 0
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 1800
+    max_age_hours: 72
+
+  - id: poland_mfa
+    name: "Poland MFA"
+    type: html
+    parser: html_links
+    url: "https://www.gov.pl/web/diplomacy"
+    base_url: "https://www.gov.pl"
+    link_pattern: '(?i)/web/diplomacy/'
+    tier: 1
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 600
+    max_age_hours: 48
+    lang: pl
+    min_title_len: 12
+
+  - id: auswaertiges
+    name: "Germany Federal Foreign Office"
+    type: html
+    parser: html_links
+    url: "https://www.auswaertiges-amt.de/en/newsroom"
+    base_url: "https://www.auswaertiges-amt.de"
+    link_pattern: '(?i)/en/newsroom/'
+    tier: 1
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 1800
+    max_age_hours: 48
+    min_title_len: 12
+
+    enabled: false
+  - id: estonia_mfa
+    name: "Estonia MFA"
+    type: html
+    parser: html_links
+    url: "https://vm.ee/en"
+    base_url: "https://vm.ee"
+    link_pattern: '(?i)/en/'
+    tier: 1
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 1800
+    max_age_hours: 48
+    min_title_len: 20
+
+    enabled: false
+  - id: gnews_lithuania
+    name: "Google News: Lithuania MFA"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=site%3Aurm.lt%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    origin_domains: [urm.lt]
+    tier: 1
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 3600
+    max_age_hours: 72
+
+  - id: gnews_finland
+    name: "Google News: Finland MFA"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=site%3Aum.fi%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    origin_domains: [um.fi]
+    tier: 1
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 3600
+    max_age_hours: 72
+
+  - id: gnews_norway
+    name: "Google News: Norway government"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=site%3Aregjeringen.no%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    origin_domains: [regjeringen.no]
+    tier: 1
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 3600
+    max_age_hours: 72
+
+  - id: gnews_estonia
+    name: "Google News: Estonia MFA"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=site%3Avm.ee%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    origin_domains: [vm.ee]
+    tier: 1
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 3600
+    max_age_hours: 48
+
+  - id: gnews_germany
+    name: "Google News: German MFA"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=site%3Aauswaertiges-amt.de%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    origin_domains: [auswaertiges-amt.de]
+    tier: 1
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 3600
+    max_age_hours: 48
+
+  - id: gnews_eeas
+    name: "Google News: EEAS"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=site%3Aeeas.europa.eu%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    origin_domains: [eeas.europa.eu]
+    tier: 1
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 3600
+    max_age_hours: 72
+
+  - id: gnews_consilium
+    name: "Google News: Council of the EU"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=site%3Aconsilium.europa.eu%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    origin_domains: [consilium.europa.eu]
+    tier: 1
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 3600
+    max_age_hours: 72
+
+  - id: gnews_iaea
+    name: "Google News: IAEA"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=site%3Aiaea.org%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    origin_domains: [iaea.org]
+    tier: 0
+    theater: ISRAEL
+    category: israel
+    interval_s: 3600
+    max_age_hours: 72
+
+  - id: ukrainealarm_public
+    name: "Ukraine air alerts (public mirror)"
+    type: json
+    parser: ukrainealarm_json
+    url: "https://ubilling.net.ua/aerialalerts/"
+    tier: 2
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 60
+    max_age_hours: 1
+    adaptive: false
+    lang: uk
+
+  - id: adsb_lol_mil
+    name: "ADS-B military (adsb.lol)"
+    type: json
+    parser: adsb_json
+    url: "https://api.adsb.lol/v2/mil"
+    tier: 3
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 300
+    max_age_hours: 1
+    adaptive: false
+
+  - id: adsb_fi_mil
+    name: "ADS-B military (adsb.fi backup)"
+    type: json
+    parser: adsb_json
+    url: "https://opendata.adsb.fi/api/v2/mil"
+    tier: 3
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 900
+    max_age_hours: 1
+    enabled: false
+
+  # ---------------- Israel / Iran / Gulf ----------------
+  - id: tzeva_notifications
+    name: "Tzeva Adom real-time alerts"
+    type: json
+    parser: tzeva_json
+    url: "https://api.tzevaadom.co.il/notifications"
+    tier: 1
+    theater: ISRAEL
+    category: israel
+    interval_s: 20
+    max_age_hours: 1
+    adaptive: false
+    lang: he
+
+  - id: tzeva_history
+    name: "Tzeva Adom alerts history"
+    type: json
+    parser: tzeva_json
+    url: "https://api.tzevaadom.co.il/alerts-history"
+    tier: 1
+    theater: ISRAEL
+    category: israel
+    interval_s: 300
+    max_age_hours: 12
+    lang: he
+
+  - id: idf_tg
+    name: "IDF (Telegram)"
+    type: telegram
+    parser: telegram_html
+    url: "https://t.me/s/idfonline"
+    tier: 0
+    theater: ISRAEL
+    category: israel
+    interval_s: 300
+    max_age_hours: 48
+    lang: he
+
+  - id: israel_mfa_tg
+    name: "Israel MFA (Telegram)"
+    type: telegram
+    parser: telegram_html
+    url: "https://t.me/s/IsraelMFA"
+    tier: 1
+    theater: ISRAEL
+    category: israel
+    interval_s: 1800
+    max_age_hours: 48
+    lang: he
+
+  - id: gnews_idf
+    name: "Google News: IDF operations"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=IDF%20when%3A1d&hl=en-US&gl=US&ceid=US%3Aen"
+    tier: 2
+    theater: ISRAEL
+    category: israel
+    interval_s: 900
+    max_age_hours: 48
+
+  - id: gnews_jpost
+    name: "Google News: Jerusalem Post"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=site%3Ajpost.com%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    origin_domains: [jpost.com]
+    tier: 2
+    theater: ISRAEL
+    category: israel
+    interval_s: 900
+    max_age_hours: 48
+
+  - id: gnews_toi
+    name: "Google News: Times of Israel"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=site%3Atimesofisrael.com%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    origin_domains: [timesofisrael.com]
+    tier: 2
+    theater: ISRAEL
+    category: israel
+    interval_s: 900
+    max_age_hours: 48
+
+  - id: ukmto_jina
+    name: "UKMTO advisories (r.jina.ai)"
+    type: html
+    parser: ukmto_jina
+    url: "https://r.jina.ai/https://www.ukmto.org/ukmto-products/advisories"
+    tier: 1
+    theater: GULF
+    category: gulf
+    interval_s: 900
+    max_age_hours: 72
+
+  - id: spa_en
+    name: "Saudi Press Agency"
+    type: html
+    parser: spa_next_data
+    url: "https://www.spa.gov.sa/en"
+    tier: 1
+    theater: GULF
+    category: gulf
+    interval_s: 3600
+    max_age_hours: 48
+    max_items: 20
+
+  - id: aramco_news
+    name: "Aramco news"
+    type: html
+    parser: html_links
+    url: "https://www.aramco.com/en/news-media/news"
+    base_url: "https://www.aramco.com"
+    link_pattern: '(?i)/en/news-media/news/'
+    tier: 1
+    theater: GULF
+    category: gulf
+    interval_s: 3600
+    max_age_hours: 72
+    enabled: false          # site times out from VPS
+
+  # ---------------- Tier 3 context ----------------
+  - id: ppi_tg
+    name: "Pentagon Pizza Report (Telegram)"
+    type: telegram
+    parser: ppi_telegram
+    url: "https://t.me/s/PentagonPizzaReport"
+    tier: 3
+    theater: MARKETS
+    category: indicator
+    interval_s: 1200
+    max_age_hours: 24
+
+  # EWS (https://ews.kylemcdonald.net/) heatmap dashboards. Range limits the
+  # download to the JSON prefix that holds cohort/liveStatus/current/signals.
+  - id: ews_jets
+    name: "EWS business jets"
+    type: json
+    parser: ews_dashboard
+    url: "https://pub-49bb6a6f314c47be9b481c25e5f6ca9e.r2.dev/dashboard.json"
+    headers:
+      Range: "bytes=0-8191"
+    tier: 3
+    theater: MARKETS
+    category: indicator
+    interval_s: 1800
+    max_age_hours: 2
+    adaptive: false
+
+  - id: ews_military
+    name: "EWS military aircraft"
+    type: json
+    parser: ews_dashboard
+    url: "https://pub-49bb6a6f314c47be9b481c25e5f6ca9e.r2.dev/military-dashboard.json"
+    headers:
+      Range: "bytes=0-8191"
+    tier: 3
+    theater: MARKETS
+    category: indicator
+    interval_s: 1800
+    max_age_hours: 2
+    adaptive: false
+
+  # Safecast fixed sensors (api.safecast.org). Only µSv/h readings: the cpm
+  # stream is dominated by bGeigie drives and is device-dependent. The collector
+  # adds captured_after/captured_before for a rolling 6 h window.
+  - id: safecast_radiation
+    name: "Safecast radiation (µSv/h)"
+    type: safecast
+    parser: safecast_json
+    url: "https://api.safecast.org/measurements.json"
+    tier: 3
+    theater: NATURE
+    category: indicator
+    interval_s: 1800
+    max_age_hours: 2
+    adaptive: false
+
+  - id: nexta_tg
+    name: "NEXTA Live (Telegram)"
+    type: telegram
+    parser: telegram_html
+    url: "https://t.me/s/nexta_live"
+    tier: 3
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 1800
+    max_age_hours: 24
+
+  - id: osinttechnical_tg
+    name: "OSINTtechnical (Telegram)"
+    type: telegram
+    parser: telegram_html
+    url: "https://t.me/s/OSINTtechnical"
+    tier: 3
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 1800
+    max_age_hours: 24
+
+  # ---------------- Markets (tier 3 multipliers only) ----------------
+  - id: tradingview
+    name: "TradingView scanner"
+    type: market
+    parser: tradingview_json
+    method: POST
+    url: "https://scanner.tradingview.com/global/scan"
+    headers:
+      Content-Type: application/json
+    body: '{"symbols":{"tickers":["ICEEUR:BRN1!","NYMEX:CL1!","TVC:GOLD","TVC:SILVER","TVC:VIX","FX_IDC:USDRUB","FX_IDC:USDILS","NYMEX:NG1!","TVC:DXY"],"query":{"types":[]}},"columns":["close","change","change_abs"]}'
+    tier: 3
+    theater: MARKETS
+    category: market
+    interval_s: 600
+    max_age_hours: 1
+    adaptive: false
+    market_symbols:
+      "ICEEUR:BRN1!": {name: Brent, kind: oil}
+      "NYMEX:CL1!": {name: WTI, kind: oil}
+      "TVC:GOLD": {name: Gold, kind: metal}
+      "TVC:SILVER": {name: Silver, kind: metal}
+      "TVC:VIX": {name: VIX, kind: vol}
+      "FX_IDC:USDRUB": {name: "USD/RUB", kind: fx}
+      "FX_IDC:USDILS": {name: "USD/ILS", kind: fx}
+      "NYMEX:NG1!": {name: "NatGas", kind: gas}
+      "TVC:DXY": {name: "DXY", kind: fx}
+
+  - id: eia_brent
+    name: "EIA Brent spot"
+    type: market
+    parser: eia_json
+    url: "https://api.eia.gov/v2/petroleum/pri/spt/data/?api_key=DEMO_KEY&frequency=daily&data%5B0%5D=value&facets%5Bseries%5D%5B%5D=RBRTE&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=desc&length=3"
+    tier: 3
+    theater: MARKETS
+    category: market
+    interval_s: 3600
+    max_age_hours: 48
+    enabled: false          # DEMO_KEY is rate-limited; used as fallback
+
+  - id: frankfurter_fx
+    name: "Frankfurter FX"
+    type: market
+    parser: frankfurter_json
+    url: "https://api.frankfurter.app/latest?from=USD&to=RUB,ILS"
+    tier: 3
+    theater: MARKETS
+    category: market
+    interval_s: 3600
+    max_age_hours: 72
+    enabled: false
+
+  # ---------------- Reference / disabled ----------------
+  - id: oref_alerts
+    name: "Oref real-time alerts (official)"
+    type: json
+    parser: oref_json
+    url: "https://www.oref.org.il/WarningMessages/alert/alerts.json"
+    headers:
+      Referer: "https://www.oref.org.il/"
+      X-Requested-With: XMLHttpRequest
+    tier: 0
+    theater: ISRAEL
+    category: israel
+    interval_s: 20
+    max_age_hours: 1
+    enabled: false          # 403 Akamai outside Israel; Tzeva Adom is the fallback
+
+  - id: promed
+    name: "ProMED-mail"
+    type: rss
+    parser: rss
+    url: "https://promedmail.org/feed/"
+    tier: 1
+    theater: PANDEMIC
+    category: pandemic
+    interval_s: 1800
+    max_age_hours: 72
+    enabled: false          # feed discontinued (Next.js site); WHO/ECDC/CDC cover v1
+
+  - id: nato_news_html_backup
+    name: "NATO news page (backup)"
+    type: html
+    parser: html_links
+    url: "https://www.nato.int/en/news-and-events/articles/news"
+    base_url: "https://www.nato.int"
+    link_pattern: '(?i)/en/news-and-events/articles/news/20\d\d/'
+    tier: 0
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 1800
+    max_age_hours: 48
+    enabled: false

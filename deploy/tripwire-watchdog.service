@@ -1,0 +1,11 @@
+[Unit]
+Description=Tripwire external dead-man check
+Documentation=file:///opt/tripwire/README.md
+After=network-online.target tripwire.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/tripwire/deploy/tripwire-watchdog.sh
+Nice=5
+IOSchedulingClass=best-effort

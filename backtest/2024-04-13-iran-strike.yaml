@@ -1,0 +1,71 @@
+# 13–14.04.2024 — удар Ирана по Израилю. Ожидание §15: CRITICAL.
+id: 2024-04-13-iran-strike
+name: "13–14.04.2024 — удар Ирана по Израилю"
+expect: CRITICAL
+provenance: >-
+  Реконструкция по заявлениям IDF (@idfonline), МВД Израиля и сообщениям Oref
+  в ночь на 14.04.2024; формулировки приведены к официальным.
+events:
+  - at: "2024-04-13T22:40:00Z"
+    source: idf_tg
+    tier0: true
+    title: "Iran attacked Israel with dozens of ballistic missiles"
+    body: >-
+      Iran launched an attack against Israel with dozens of ballistic missiles and
+      UAVs. The IDF is defending Israeli airspace together with coalition partners.
+      The threat is not over; residents are instructed to follow Home Front Command
+      guidelines.
+    category: israel
+    theater: ISRAEL
+    country: IL
+    lat: 31.77
+    lon: 35.21
+    url: "https://t.me/s/idfonline/20240413"
+    origin_domain: t.me
+  - at: "2024-04-13T22:42:00Z"
+    source: tzeva_notifications
+    title: "התרעה: ירי רקטות וטילים — ירושלים, באר שבע, תל אביב"
+    body: >-
+      Red alert — ballistic missiles. Cities: Jerusalem, Be'er Sheva, Tel Aviv,
+      Dimona, Eilat, Haifa.
+    category: israel
+    theater: ISRAEL
+    country: IL
+    lat: 31.77
+    lon: 35.21
+    payload:
+      cities: [Jerusalem, "Be'er Sheva", "Tel Aviv", Dimona, Eilat, Haifa]
+      districts: [Jerusalem, Northern Negev, Tel Aviv, Dan, Haifa, Eilat, Central Negev, Judea]
+      district_share: 0.267
+      threat: 1
+      is_drill: false
+    url: "https://www.tzevaadom.co.il/alert/20240414014000"
+    origin_domain: tzevaadom.co.il
+  - at: "2024-04-13T22:50:00Z"
+    source: israel_mfa_tg
+    title: "Iran launched a massive attack on Israel; Israel will respond"
+    body: >-
+      Iran's Revolutionary Guards launched hundreds of drones and ballistic missiles
+      at Israel. The attack was intercepted by Israel and its partners. Israel
+      maintains its right to respond.
+    category: israel
+    theater: ISRAEL
+    country: IL
+    lat: 31.77
+    lon: 35.21
+    url: "https://t.me/s/IsraelMFA/20240413"
+    origin_domain: t.me
+  - at: "2024-04-13T23:05:00Z"
+    source: gnews_jpost
+    title: "Iran fires hundreds of drones, ballistic missiles at Israel"
+    body: >-
+      The Jerusalem Post reports a massive Iranian attack on Israel with drones and
+      ballistic missiles. Air raid sirens sounded across the country; the IDF says
+      most threats were intercepted.
+    category: israel
+    theater: ISRAEL
+    country: IL
+    lat: 31.77
+    lon: 35.21
+    url: "https://news.google.com/rss/articles/iran-attack-2024"
+    origin_domain: news.google.com

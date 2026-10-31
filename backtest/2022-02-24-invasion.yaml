@@ -1,0 +1,68 @@
+# 24.02.2022 — начало полномасштабного вторжения РФ в Украину.
+# Ожидание §15: CRITICAL ≤ 15 мин от первого tier-0 сообщения.
+id: 2022-02-24-invasion
+name: "24.02.2022 — вторжение РФ в Украину"
+expect: CRITICAL
+max_delay_min: 15
+provenance: >-
+  Текст обращения президента РФ — дословный фрагмент en.kremlin.ru/events/president/news/67843
+  (24.02.2022 06:00 MSK, 03:00 UTC). Остальные сообщения — реконструкция по
+  официальным публикациям МО РФ, РИА Новости и воздушным тревогам Украины того утра.
+events:
+  - at: "2022-02-24T03:00:00Z"
+    source: kremlin_events
+    tier0: true
+    title: "Address by the President of the Russian Federation"
+    body: >-
+      In this context, in accordance with Article 51 (Chapter VII) of the UN Charter,
+      with permission of Russia's Federation Council, and in execution of the treaties
+      of friendship and mutual assistance with the Donetsk People's Republic and the
+      Lugansk People's Republic, ratified by the Federal Assembly on February 22,
+      I made a decision to carry out a special military operation.
+    category: eu_ru
+    theater: EU_RU
+    country: RU
+    lat: 55.75
+    lon: 37.62
+    url: "http://en.kremlin.ru/events/president/news/67843"
+    origin_domain: kremlin.ru
+  - at: "2022-02-24T03:07:00Z"
+    source: mod_russia_tg
+    title: "Минобороны России: вооружённые силы Украины, военная инфраструктура и авиация выведены из строя"
+    body: >-
+      Министерство обороны Российской Федерации сообщает, что высокоточными средствами
+      поражения выведены из строя военная инфраструктура, объекты ПВО и авиация
+      вооружённых сил Украины.
+    category: eu_ru
+    theater: EU_RU
+    country: RU
+    lat: 55.75
+    lon: 37.62
+    url: "https://t.me/s/mod_russia/12000"
+    origin_domain: t.me
+  - at: "2022-02-24T03:12:00Z"
+    source: ria_rss
+    title: "Путин объявил о начале специальной военной операции в Донбассе"
+    body: >-
+      Президент России Владимир Путин заявил, что принял решение о проведении
+      специальной военной операции. По его словам, целью является защита жителей Донбасса.
+    category: eu_ru
+    theater: EU_RU
+    country: RU
+    lat: 55.75
+    lon: 37.62
+    url: "https://ria.ru/20220224/operatsiya-1775000000.html"
+    origin_domain: ria.ru
+  - at: "2022-02-24T03:14:00Z"
+    source: ukrainealarm_public
+    title: "Повітряна тривога: Київ, Харків, Одеса, Дніпро, Львів"
+    body: >-
+      У більшості областей України оголошено повітряну тривогу. Зафіксовано пуски
+      крилатих ракет по об'єктах військової інфраструктури.
+    category: eu_ru
+    theater: EU_RU
+    country: UA
+    lat: 50.45
+    lon: 30.52
+    url: "https://ubilling.net.ua/aerialalerts/"
+    origin_domain: ubilling.net.ua

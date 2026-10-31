@@ -1,0 +1,382 @@
+# Layer A — hard tripwires. A match bypasses scoring and fires CRITICAL immediately.
+# Types:
+#   regex   — match against title+body; optional source_ids/source_domains, max_tier, negate_regex
+#   numeric — boolean expression over the event numeric_payload (JSON fields become names)
+#   handler — named handler implemented in tripwire.py for multi-event / stateful checks
+# Every entry: id, theater, level, cooldown_min, why (shown in /why and in the alert).
+version: 1
+
+tripwires:
+  # ---------------- Europe / Russia ----------------
+  - id: TW-EU-ART5
+    type: regex
+    theater: EU_RU
+    level: CRITICAL
+    cooldown_min: 60
+    source_domains: [nato.int]
+    max_tier: 0
+    regex: >-
+      (?is)(\barticle\s*(5|five)\b.{0,100}\b(invok|trigger|activat|appl)\w*|\b(invok|trigger|activat)\w*.{0,100}\barticle\s*(5|five)\b)
+    negate_regex: '(?i)(exercise|drill|simulation|war ?game|scenario|anniversary|hypothetical|учени|тренировк|сценарий)'
+    why: "Статья 5 Вашингтонского договора — коллективная оборона НАТО. Это война блока."
+    one_liner: "НАТО задействует Статью 5"
+
+  - id: TW-EU-ART4
+    type: regex
+    theater: EU_RU
+    level: WARNING
+    cooldown_min: 60
+    source_domains: [nato.int]
+    max_tier: 0
+    regex: >-
+      (?is)(\barticle\s*(4|four)\b.{0,100}\b(invok|request|consult)\w*|\b(invok|request|consult)\w*.{0,100}\barticle\s*(4|four)\b)
+    negate_regex: '(?i)(exercise|drill|simulation|war ?game|scenario|anniversary|учени|тренировк|сценарий)'
+    why: "Статья 4 — консультации по угрозе. Пока не война, но признак серьёзного кризиса."
+    one_liner: "НАТО проводит консультации по Статье 4"
+
+  - id: TW-EU-MOBILIZATION
+    type: regex
+    theater: EU_RU
+    level: CRITICAL
+    cooldown_min: 120
+    source_ids: [kremlin_events, kremlin_acts, mod_russia_tg]
+    max_tier: 1
+    regex: >-
+      (?i)(всеобщ\w*\s+мобилизац|объявлен\w*\s+(всеобщ\w*\s+)?мобилизац|указ\w*.{0,60}мобилизац|военн\w+\s+положени|объявлен\w*.{0,30}военн\w+\s+положени)
+    why: "Всеобщая мобилизация или военное положение в РФ — переход к большой войне."
+    one_liner: "В РФ объявлена мобилизация / военное положение"
+
+  - id: TW-EU-MARTIAL-LAW
+    type: regex
+    theater: EU_RU
+    level: CRITICAL
+    cooldown_min: 120
+    max_tier: 1
+    require_country_in: NATO_EU
+    regex: >-
+      (?is)\b(martial law|state of war|военное положение|wojenn\w+|karo pad[eė]tis|sõjaseisukord|krigstillstånd)\b
+    negate_regex: '(?i)(exercise|drill|simulation|scenario|anniversary|учени|тренировк|сценарий|considered|may|might|could|обсужда|рассматрива)'
+    why: "Военное положение в стране НАТО/ЕС — официальный переход государства в режим войны."
+    one_liner: "Военное положение в стране НАТО/ЕС"
+
+  - id: TW-EU-AIRSPACE-FULL
+    type: handler
+    handler: airspace_full_closure
+    theater: EU_RU
+    level: CRITICAL
+    cooldown_min: 120
+    countries: [RU, BY, UA, PL, LT, LV, EE, FI, "NO", SE, RO, MD, DE, CZ, SK, HU]
+    why: "Полное закрытие воздушного пространства страны для гражданской авиации — признак начала боевых действий."
+    one_liner: "Закрыто воздушное пространство страны"
+
+  - id: TW-EU-ORDERED-DEPARTURE
+    type: handler
+    handler: ordered_departure
+    theater: EU_RU
+    level: WARNING
+    cooldown_min: 180
+    capitals: [Moscow, Kyiv, Warsaw, Vilnius, Riga, Tallinn, Helsinki, Bucharest, Chisinau]
+    regex: '(?i)(ordered departure|authorized departure|приказ\w*.{0,30}(эвакуац|выезд)|предписан\w*.{0,30}(эвакуац|выезд))'
+    why: "Госдеп/МИД предписал выезд персонала посольства — один из лучших ранних индикаторов войны."
+    one_liner: "Предписан выезд персонала посольства"
+
+  - id: TW-EU-STRIKE-NATO
+    type: handler
+    handler: strike_on_nato
+    theater: EU_RU
+    level: CRITICAL
+    cooldown_min: 60
+    regex: >-
+      (?is)\b(struck|attacked|hit|shelled|bombed|missile strike|drone attack|нанес\w* удар|атакова\w*|обстрел\w*|удар\w*)
+    max_tier: 1
+    why: "Подтверждённый удар по территории страны НАТО с жертвами — casus foederis."
+    one_liner: "Удар по территории страны НАТО"
+
+  - id: TW-EU-INVASION
+    type: regex
+    theater: EU_RU
+    level: CRITICAL
+    cooldown_min: 120
+    source_ids: [kremlin_events, kremlin_acts, mod_russia_tg]
+    max_tier: 1
+    regex: >-
+      (?is)(made a decision|decided|i have decided|принял\w*\s+решени\w*|принято\s+решени\w*).{0,80}(carry out|conduct|launch|start|проведени\w*|начал\w*).{0,40}(special military operation|специальн\w*\s+военн\w*\s+операц\w*)|(launched|started|began|начал\w*).{0,40}(full-scale invasion|полномасштабн\w*\s+вторжени\w*).{0,40}(ukrain|украин)
+    negate_regex: '(?i)(exercise|drill|simulation|scenario|anniversary|учени|тренировк|сценарий|годовщин)'
+    why: "Официальное объявление о начале военной операции против Украины — начало полномасштабного конфликта."
+    one_liner: "Начало полномасштабной войны РФ против Украины"
+
+  - id: TW-RU-NUCLEAR-USE
+    type: regex
+    theater: EU_RU
+    level: CRITICAL
+    cooldown_min: 240
+    max_tier: 1
+    regex: >-
+      (?is)\b(nuclear (strike|attack)|used nuclear weapons?|nuclear weapons? (?:were |have been |was |has been )?used|use of (?:tactical |a )?nuclear weapons?|tactical nuclear weapons? use|ядерн\w+ (удар|атак)|применен\w+ ядерн\w+ оружи|использовани\w+ ядерн\w+ оружи|תקיפה גרעינית)\b
+    negate_regex: '(?i)(exercise|drill|simulation|scenario|doctrine|analyst|opinion|risk of|could|may|might|warn|учени|тренировк|сценарий|доктрин|аналитик|риск|может|могут)'
+    why: "Применение ядерного оружия — стратегическая точка невозврата."
+    one_liner: "Применено ядерное оружие"
+
+  # ---------------- Israel / Iran ----------------
+  - id: TW-IL-NATIONWIDE-DIRECTIVE
+    type: handler
+    handler: oref_nationwide_directive
+    theater: ISRAEL
+    level: CRITICAL
+    cooldown_min: 180
+    why: "Общенациональные указания тыла («только необходимая деятельность», закрытие школ) — переход к войне."
+    one_liner: "Общенациональные указания тыла Израиля"
+
+  - id: TW-IL-OREF-25PCT
+    type: handler
+    handler: oref_polygon_share
+    theater: ISRAEL
+    level: CRITICAL
+    cooldown_min: 30
+    min_share: 0.25
+    window_min: 10
+    why: "Тревоги одновременно в ≥25% районов Израиля — массированный удар или наземная фаза."
+    one_liner: "Массовые тревоги по Израилю"
+
+  - id: TW-IL-GROUND-OP
+    type: regex
+    theater: ISRAEL
+    level: CRITICAL
+    cooldown_min: 120
+    source_ids: [idf_tg, israel_mfa_tg, gnews_jpost, gnews_toi, gnews_idf]
+    max_tier: 2
+    regex: >-
+      (?is)(\b(ground (operation|offensive|invasion|incursion)|наземн\w+ (операц|наступлен|вторжен)|מבצע קרקעי|פלישה קרקעית)\b)
+      .{0,160}
+      (\b(iran|lebanon|hezbollah|gaza|syria|yemen|иран|ливан|хизбалл|газа|сирия|йемен)\b)
+    negate_regex: '(?i)(exercise|drill|simulation|scenario|anniversary|учени|тренировк|сценарий)'
+    why: "Официально объявленная наземная операция в регионе — эскалация до региональной войны."
+    one_liner: "Объявлена наземная операция"
+
+  - id: TW-IL-IRAN-STRIKE
+    type: regex
+    theater: ISRAEL
+    level: CRITICAL
+    cooldown_min: 120
+    max_tier: 2
+    regex: >-
+      (?is)(\b(israel|idf|израил|צה"ל)\b.{0,120}\b(struck|attacked|hit|нанес\w* удар|атакова\w*|תקף)\b.{0,120}\b(iran|iranian|иран|איראן)\b)
+      |
+      (\b(iran|iranian|иран|איראן)\b.{0,120}\b(struck|attacked|hit|нанес\w* удар|атакова\w*|תקף)\b.{0,120}\b(israel|израил|ישראל)\b)
+    negate_regex: '(?i)(exercise|drill|simulation|scenario|учени|тренировк|сценарий|threaten|угрожа|could|may)'
+    why: "Взаимные удары Израиль↔Иран — переход к региональной войне."
+    one_liner: "Удар Израиля по Ирану или Ирана по Израилю"
+
+  # ---------------- Gulf / Saudi Arabia ----------------
+  - id: TW-GULF-HORMUZ
+    type: regex
+    theater: GULF
+    level: CRITICAL
+    cooldown_min: 120
+    max_tier: 2
+    regex: >-
+      (?is)((\bstrait of hormuz\b|ормузск\w+ пролив|מיצר הורמוז).{0,160}(\bclosed?\b|\bclosure\b|\bmining\b|\bmined\b|\bblocked\b|закрыт\w*|минир\w*|блокир\w*)
+      |
+      (\bclosed?\b|\bclosure\b|\bmining\b|\bmined\b|закрыт\w*|минир\w*).{0,160}(\bstrait of hormuz\b|ормузск\w+ пролив|מיצר הורמוז))
+    negate_regex: '(?i)(exercise|drill|simulation|scenario|учени|тренировк|сценарий|reopen|открыт|возобновл)'
+    why: "Закрытие или минирование Ормузского пролива — перекрытие ~20% мировой нефти."
+    one_liner: "Ормузский пролив закрыт / заминирован"
+
+  - id: TW-GULF-OIL-INFRA
+    type: regex
+    theater: GULF
+    level: CRITICAL
+    cooldown_min: 120
+    max_tier: 2
+    regex: >-
+      (?is)(\b(ras tanura|abqaiq|jubail|рас[- ]танура|абкайк|джубейл|ג'ובייל|ראס תנאורה)\b)
+      .{0,160}
+      (\b(attack|strike|hit|explosion|fire|sabotage|drone|missile|атак\w*|удар\w*|взрыв\w*|пожар\w*|диверс\w*)\b)
+    negate_regex: '(?i)(exercise|drill|simulation|scenario|учени|тренировк|сценарий)'
+    why: "Удар по ключевой нефтяной инфраструктуре Саудовской Аравии — шок мирового рынка."
+    one_liner: "Атака на нефтяную инфраструктуру Залива"
+
+  - id: TW-GULF-AIRSPACE
+    type: handler
+    handler: airspace_full_closure
+    theater: GULF
+    level: CRITICAL
+    cooldown_min: 120
+    countries: [SA, AE, QA, KW, BH, OM]
+    why: "Полное закрытие воздушного пространства стран Залива — подготовка или начало ударов."
+    one_liner: "Закрыто воздушное пространство страны Залива"
+
+  # ---------------- Pandemic ----------------
+  - id: TW-PAN-PHEIC
+    type: regex
+    theater: PANDEMIC
+    level: CRITICAL
+    cooldown_min: 720
+    source_ids: [who_news_rss, who_don_odata, gnews_who]
+    max_tier: 1
+    regex: >-
+      (?is)((\bdeclar\w+|\bdetermin\w+|объяв\w+|определ\w+).{0,120}(\bpublic health emergency of international concern\b|\bPHEIC\b|чрезвычайн\w+ ситуац\w+.{0,40}международн\w+ значения))
+      |
+      ((\bpublic health emergency of international concern\b|\bPHEIC\b).{0,120}(\bdeclar\w+|\bdetermin\w+|объяв\w+))
+    negate_regex: '(?i)(not (a )?pheic|no longer|ended|terminat|не является|отменен|прекращен|2020|2022|historic)'
+    why: "ВОЗ объявила ЧС международного значения — верхний уровень эпидемиологической тревоги."
+    one_liner: "ВОЗ объявила PHEIC"
+
+  - id: TW-PAN-PANDEMIC
+    type: regex
+    theater: PANDEMIC
+    level: CRITICAL
+    cooldown_min: 720
+    source_ids: [who_news_rss, who_don_odata, gnews_who]
+    max_tier: 1
+    regex: >-
+      (?is)((\bdirector[- ]general\b|\bгенеральн\w+ директор\b).{0,160}\b(pandemic|пандеми\w+)\b)
+      |
+      (\b(pandemic|пандеми\w+)\b.{0,100}(\bdeclar\w+|\bобъяв\w+))
+    negate_regex: '(?i)(not a pandemic|no longer|isn.t|не является|не объявлена|historic|2009|1918|previous|прошл\w+)'
+    why: "ВОЗ объявила пандемию — глобальная чрезвычайная ситуация."
+    one_liner: "ВОЗ объявила пандемию"
+
+  - id: TW-PAN-H2H
+    type: regex
+    theater: PANDEMIC
+    level: CRITICAL
+    cooldown_min: 720
+    max_tier: 1
+    regex: >-
+      (?is)(\bsustained human[- ]to[- ]human transmission\b|устойчив\w+ передач\w+ от человека к человеку|הדבקה מתמשכת מאדם לאדם)
+    negate_regex: '(?i)(no evidence|not confirmed|denied|опроверг|не подтвержд|אין ראיות)'
+    why: "Устойчивая передача человек-человеку нового патогена — предпосылка пандемии."
+    one_liner: "Подтверждена устойчивая передача человек-человеку"
+
+  # ---------------- Nature ----------------
+  - id: TW-NAT-USGS-RED
+    type: numeric
+    theater: NATURE
+    level: CRITICAL
+    cooldown_min: 60
+    domain: earthquake
+    expr: "alert == 'red'"
+    why: "PAGER Red — ожидаются массовые жертвы и разрушения."
+    one_liner: "Землетрясение с оценкой PAGER Red"
+
+  - id: TW-NAT-USGS-ORANGE
+    type: numeric
+    theater: NATURE
+    level: WARNING
+    cooldown_min: 60
+    domain: earthquake
+    expr: "alert == 'orange'"
+    why: "PAGER Orange — значительный ущерб вероятен."
+    one_liner: "Землетрясение с оценкой PAGER Orange"
+
+  - id: TW-NAT-M75
+    type: numeric
+    theater: NATURE
+    level: CRITICAL
+    cooldown_min: 60
+    domain: earthquake
+    expr: "mag >= 7.5"
+    why: "M≥7.5 — катастрофическое землетрясение с высокой вероятностью цунами и разрушений."
+    one_liner: "Землетрясение M≥7.5"
+
+  - id: TW-NAT-M68-POP
+    type: numeric
+    theater: NATURE
+    level: CRITICAL
+    cooldown_min: 60
+    domain: earthquake
+    expr: "mag >= 6.8 and depth < 70 and population_100km >= 1000000"
+    why: "M≥6.8, мелкий очаг под густонаселённым районом — высокий ожидаемый ущерб."
+    one_liner: "Сильное мелкое землетрясение под городом"
+
+  - id: TW-NAT-TSUNAMI-WARNING
+    type: regex
+    theater: NATURE
+    level: CRITICAL
+    cooldown_min: 60
+    domain: tsunami
+    source_ids: [noaa_ptwc_atom, noaa_ntwc_atom]
+    max_tier: 0
+    regex: '(?i)\b(tsunami warning|warning\b.{0,60}tsunami|предупрежден\w+ о цунами|אזהרת צונאמי)'
+    negate_regex: '(?i)(cancel\w*|ended|отмен\w*|advisory|watch)'
+    why: "Предупреждение о цунами (не watch/advisory) — угроза жизни на побережье."
+    one_liner: "Предупреждение о цунами"
+
+  - id: TW-NAT-VOLCANO-RED
+    type: numeric
+    theater: NATURE
+    level: CRITICAL
+    cooldown_min: 120
+    domain: volcano
+    expr: "colour_code == 'red' or alert_level == 'warning'"
+    why: "Aviation Colour Code Red / Alert Level Warning — извержение с опасной для авиации колонной."
+    one_liner: "Вулкан: красный код"
+
+  - id: TW-NAT-VOLCANO-RED-HC
+    type: handler
+    handler: volcano_high_consequence
+    theater: NATURE
+    level: CRITICAL
+    cooldown_min: 120
+    why: "Orange/Red на вулкане из списка high-consequence — угроза крупного населения."
+    one_liner: "High-consequence вулкан: повышенный код"
+
+  - id: TW-NAT-ASH-FL450
+    type: numeric
+    theater: NATURE
+    level: CRITICAL
+    cooldown_min: 120
+    domain: volcano
+    expr: "ash_ft >= 45000"
+    why: "Пепловая колонна ≥ FL450 — закрытие воздушного пространства на региональном уровне."
+    one_liner: "Пепловая колонна ≥ FL450"
+
+  - id: TW-NAT-ASH-FL300
+    type: numeric
+    theater: NATURE
+    level: WARNING
+    cooldown_min: 120
+    domain: volcano
+    expr: "ash_ft >= 30000"
+    why: "Пепловая колонна ≥ FL300 — опасность для авиации."
+    one_liner: "Пепловая колонна ≥ FL300"
+
+  - id: TW-NAT-VEI4
+    type: numeric
+    theater: NATURE
+    level: CRITICAL
+    cooldown_min: 240
+    domain: volcano
+    expr: "vei >= 4"
+    why: "VEI≥4 — крупное эксплозивное извержение с климатическими последствиями."
+    one_liner: "Извержение VEI≥4"
+
+  - id: TW-NAT-EVAC10K
+    type: regex
+    theater: NATURE
+    level: CRITICAL
+    cooldown_min: 240
+    max_tier: 1
+    domain: volcano
+    regex: >-
+      (?is)(\b(evacuat\w+|эвакуир\w+|פינוי)\b.{0,120}(\b10[, ]?000\b|\bten thousand\b|\bдесят\w+ тысяч\b))
+      |
+      ((\bvolcan\w+|вулкан\w+|הר געש\b).{0,160}\b(evacuat\w+|эвакуир\w+|פינוי)\b)
+    negate_regex: '(?i)(exercise|drill|simulation|planned drill|учени|тренировк)'
+    why: "Эвакуация >10 тыс. человек из-за вулкана — событие регионального масштаба."
+    one_liner: "Эвакуация более 10 тыс. человек"
+
+  - id: TW-NAT-SWARM
+    type: handler
+    handler: volcano_swarm
+    theater: NATURE
+    level: WARNING
+    cooldown_min: 1440
+    domain: earthquake
+    min_mag: 4.5
+    min_count: 10
+    window_hours: 24
+    radius_km: 30
+    why: "Рой землетрясений M≥4.5 в зоне супервулкана — признак активизации магматической системы."
+    one_liner: "Рой землетрясений в зоне супервулкана"

@@ -1,0 +1,72 @@
+app:
+  timezone: Europe/Moscow
+  data_dir: /var/lib/tripwire
+  log_level: INFO
+  user_agent: "Tripwire/1.0 (global event monitor; ops contact in secrets.env)"
+  heartbeat_s: 30
+  health_check_s: 300
+  degraded_recheck_s: 3600
+  max_age_hours: 48
+  max_age_hours_seismic: 3
+  digest_at: "09:00"
+  selftest_interval_days: 7
+  night: {start: 23, end: 7}
+  vacuum_day: 1
+  sqlite:
+    busy_timeout_ms: 5000
+    wal: true
+  fetch:
+    timeout_s: 25
+    max_connections: 16
+    max_keepalive: 8
+    retries: 2
+    jitter: 0.2
+
+telegram:
+  api_base: https://api.telegram.org
+  token_env: TELEGRAM_BOT_TOKEN
+  rate_per_min: 20
+  poll_timeout_s: 50
+  backup_fail_threshold: 3
+
+commands:
+  threshold_ttl_hours: 24
+  mute_max_hours: 168
+
+alerts:
+  pin_critical: true
+  # Empty list disables all "no /ack" reminders; add minutes (e.g. [10, 30]) to enable.
+  critical_repeat_minutes: []
+  edit_on_confirmation: true
+  # A WARNING/CRITICAL alert needs at least one cluster event at this score
+  # (tripwire alerts bypass). Blocks theater-level alerts riding on unrelated news.
+  min_cluster_score: 1.0
+  # WARNING (L2) for these theaters still scores but is not delivered to Telegram.
+  suppress_warning_theaters: [NATURE]
+  # CRITICAL for these theaters is delivered once, without "no /ack" reminders.
+  suppress_repeats_theaters: [NATURE]
+
+digest:
+  # Individual events below this score are omitted from the digest lists.
+  min_event_score: 1.0
+
+translate:
+  enabled: true
+  providers: [google, mymemory]
+  google_url: https://clients5.google.com/translate_a/t
+  mymemory_url: https://api.mymemory.translated.net/get
+  mymemory_email: ""
+  target_lang: RU
+  timeout_s: 3
+  max_chars: 1200
+  skip_langs: [ru, uk, be]
+
+files:
+  channels: channels.yaml
+  sources: sources.yaml
+  tripwires: tripwires.yaml
+  lexicon: lexicon.yaml
+  thresholds: thresholds.yaml
+  geofences: geofences.yaml
+  gazetteer: gazetteer.yaml
+  pizza: pizza.yaml

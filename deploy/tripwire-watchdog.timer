@@ -1,0 +1,12 @@
+[Unit]
+Description=Hourly Tripwire dead-man check
+
+[Timer]
+OnBootSec=5min
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=60
+Unit=tripwire-watchdog.service
+
+[Install]
+WantedBy=timers.target

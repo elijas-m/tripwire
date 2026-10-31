@@ -1,0 +1,37 @@
+# Контроль ложных §15: DEFENDER-Europe и Union Resolve не должны превышать WATCH.
+id: control-defender-europe
+name: "Контроль: DEFENDER-Europe и Union Resolve"
+expect: WATCH
+control: true
+provenance: >-
+  Реконструкция типовых сообщений DoD/NATO о плановых учениях DEFENDER-Europe 24
+  и Union Resolve 2024; формулировки соответствуют официальным анонсам.
+events:
+  - at: "2024-04-01T10:00:00Z"
+    source: dod_rss
+    tier0: true
+    title: "Exercise DEFENDER-Europe 24 begins in Europe"
+    body: >-
+      Exercise DEFENDER-Europe 24, a scheduled U.S. Army Europe and Africa exercise,
+      began this week. The exercise will test the rapid deployment of forces and
+      interoperability with NATO allies.
+    category: eu_ru
+    theater: EU_RU
+    country: DE
+    lat: 49.4
+    lon: 8.68
+    url: "https://www.war.gov/News/News-Stories/Article/Article/defender-europe-24/"
+    origin_domain: war.gov
+  - at: "2024-05-15T09:00:00Z"
+    source: dod_rss
+    title: "Exercise Union Resolve 2024 strengthens NATO interoperability"
+    body: >-
+      Exercise Union Resolve 2024 is a scheduled multinational drill focused on
+      command and control. The exercise is not linked to any current crisis.
+    category: eu_ru
+    theater: EU_RU
+    country: LT
+    lat: 54.69
+    lon: 25.28
+    url: "https://www.war.gov/News/News-Stories/Article/Article/union-resolve-24/"
+    origin_domain: war.gov

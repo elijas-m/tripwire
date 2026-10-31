@@ -1,0 +1,56 @@
+# Pentagon Pizza Index (variant A: aggregate public PPI channels; variant B: own z-score model).
+# PPI is only a multiplier (x1.15) and never creates an alert by itself.
+version: 1
+
+mode: aggregate          # aggregate | own | off
+confidence_multiplier: 1.15
+
+aggregate:
+  channels:
+    - {source_id: ppi_tg, weight: 1.0}
+  keywords:
+    anomaly: [anomaly, abnormal, unusual, spike, surge, "off the charts", "all hands", "red alert"]
+    elevated: [elevated, busy, higher than usual, increased]
+    normal: [normal, quiet, average, typical]
+
+own:
+  # Variant B is disabled until a legal traffic provider is configured.
+  provider: besttime     # besttime | off
+  timezone: America/New_York
+  poll_window: {start_hour: 16, end_hour: 3}
+  interval_s: 1200
+  baseline_weeks: 8
+  z_anomaly: 2.0
+  z_control_max: 1.0
+  min_target_points_for_anomaly: 3
+  min_target_points_for_elevated: 2
+  targets:
+    - {name: "District Pizza Palace", lat: 38.8607, lon: -77.0574}
+    - {name: "Domino's Pentagon City", lat: 38.8616, lon: -77.0596}
+    - {name: "Papa John's Pentagon City", lat: 38.8630, lon: -77.0599}
+    - {name: "Extreme Pizza Pentagon City", lat: 38.8624, lon: -77.0592}
+    - {name: "We The Pizza", lat: 38.8650, lon: -77.0600}
+    - {name: "Paisano's Pentagon City", lat: 38.8637, lon: -77.0598}
+  control:
+    - {name: "Domino's Bethesda", lat: 38.9847, lon: -77.0947}
+    - {name: "Papa John's Bethesda", lat: 38.9860, lon: -77.0952}
+    - {name: "Domino's Fairfax", lat: 38.8462, lon: -77.3064}
+    - {name: "Papa John's Fairfax", lat: 38.8475, lon: -77.3070}
+    - {name: "Domino's Old Town Alexandria", lat: 38.8048, lon: -77.0469}
+    - {name: "Papa John's Alexandria West", lat: 38.8200, lon: -77.1100}
+  calendar_exclusions:
+    - "01-01"   # New Year
+    - "07-04"   # Independence Day
+    - "10-31"   # Halloween
+    - "11-27"   # Thanksgiving 2026 (Thu)
+    - "12-24"
+    - "12-25"
+    - "12-31"
+  event_exclusions:
+    - Super Bowl
+    - World Series
+    - NBA Finals
+    - Stanley Cup Final
+    - Commanders home game
+    - Capitals home game
+    - Nationals home game

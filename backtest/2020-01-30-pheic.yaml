@@ -1,0 +1,31 @@
+# 30.01.2020 — ВОЗ объявляет PHEIC. Ожидание §15: CRITICAL.
+id: 2020-01-30-pheic
+name: "30.01.2020 — ВОЗ объявила PHEIC"
+expect: CRITICAL
+provenance: >-
+  Дословный фрагмент заявления ВОЗ от 30.01.2020 (who.int, Statement on the second
+  meeting of the IHR Emergency Committee).
+events:
+  - at: "2020-01-30T19:00:00Z"
+    source: who_news_rss
+    tier0: true
+    title: "Statement on the second meeting of the International Health Regulations (2005) Emergency Committee regarding the outbreak of novel coronavirus (2019-nCoV)"
+    body: >-
+      The Director-General declared that the outbreak of 2019-nCoV constitutes a PHEIC
+      and accepted the Committee's advice and issued this advice as Temporary
+      Recommendations under the IHR. The Committee does not recommend any travel or
+      trade restriction based on the current information available.
+    category: pandemic
+    theater: PANDEMIC
+    url: "https://www.who.int/news/item/30-01-2020-statement-on-the-second-meeting-of-the-international-health-regulations-(2005)-emergency-committee-regarding-the-outbreak-of-novel-coronavirus-(2019-ncov)"
+    origin_domain: who.int
+  - at: "2020-01-30T19:30:00Z"
+    source: who_don_odata
+    title: "Novel Coronavirus (2019-nCoV) — situation report"
+    body: >-
+      The WHO Director-General declared a Public Health Emergency of International
+      Concern (PHEIC) over the novel coronavirus outbreak.
+    category: pandemic
+    theater: PANDEMIC
+    url: "https://www.who.int/emergencies/disease-outbreak-news/item/2020-DON233"
+    origin_domain: who.int

@@ -1,0 +1,133 @@
+# 21.02.2022 — признание ЛНР/ДНР. Ожидание §15: WARNING (не CRITICAL).
+id: 2022-02-21-recognition
+name: "21.02.2022 — признание ЛНР/ДНР"
+expect: WARNING
+provenance: >-
+  Указ и фрагменты обращения — по kremlin.ru (21–22.02.2022). Заявления НАТО и
+  FCDO — реконструкция по официальным публикациям того же дня.
+events:
+  - at: "2022-02-21T17:30:00Z"
+    source: kremlin_acts
+    tier0: true
+    title: "Указ о признании Донецкой и Луганской народных республик"
+    body: >-
+      Президент подписал указы о признании Донецкой Народной Республики и
+      Луганской Народной Республики. Документы вступают в силу со дня подписания.
+    category: eu_ru
+    theater: EU_RU
+    country: RU
+    lat: 55.75
+    lon: 37.62
+    url: "http://kremlin.ru/acts/news/67827"
+    origin_domain: kremlin.ru
+  - at: "2022-02-21T18:00:00Z"
+    source: kremlin_events
+    title: "Обращение Президента Российской Федерации"
+    body: >-
+      I consider it necessary to take a long-overdue decision: to immediately recognise
+      the independence and sovereignty of the Donetsk People's Republic and the Lugansk
+      People's Republic. I ask the Federal Assembly of the Russian Federation to support
+      this decision.
+    category: eu_ru
+    theater: EU_RU
+    country: RU
+    lat: 55.75
+    lon: 37.62
+    url: "http://en.kremlin.ru/events/president/news/67828"
+    origin_domain: kremlin.ru
+  - at: "2022-02-21T18:40:00Z"
+    source: ria_rss
+    title: "Путин признал независимость ДНР и ЛНР"
+    body: >-
+      Президент России Владимир Путин подписал указы о признании независимости
+      Донецкой и Луганской народных республик и выступил с обращением к гражданам.
+    category: eu_ru
+    theater: EU_RU
+    country: RU
+    lat: 55.75
+    lon: 37.62
+    url: "https://ria.ru/20220221/priznanie-1774000000.html"
+    origin_domain: ria.ru
+  - at: "2022-02-21T21:30:00Z"
+    source: nato_news
+    title: "Statement by the NATO Secretary General on Russia's decision to recognise the so-called DNR and LNR"
+    body: >-
+      I condemn Russia's decision to extend recognition to the self-proclaimed
+      "Donetsk People's Republic" and "Luhansk People's Republic". This further
+      undermines Ukraine's sovereignty and territorial integrity and the Minsk agreements.
+    category: eu_ru
+    theater: EU_RU
+    country: BE
+    lat: 50.85
+    lon: 4.35
+    url: "https://www.nato.int/cps/en/natohq/news_192087.htm"
+    origin_domain: nato.int
+  - at: "2022-02-21T22:00:00Z"
+    source: fcdo_atom
+    title: "PM statement on Russia's recognition of the so-called DNR and LNR"
+    body: >-
+      President Putin's decision to recognise the separatist regions of Donetsk and
+      Luhansk as independent is a flagrant violation of Ukraine's sovereignty.
+      The UK will announce a package of sanctions in response.
+    category: eu_ru
+    theater: EU_RU
+    country: GB
+    lat: 51.5
+    lon: -0.12
+    url: "https://www.gov.uk/government/news/pm-statement-on-russia-21-february-2022"
+    origin_domain: gov.uk
+  - at: "2022-02-22T09:00:00Z"
+    source: ria_rss
+    title: "Совет Федерации разрешил использовать Вооружённые силы за рубежом"
+    body: >-
+      Совет Федерации на заседании во вторник единогласно принял постановление,
+      дающее президенту согласие на использование Вооружённых сил за рубежом.
+    category: eu_ru
+    theater: EU_RU
+    country: RU
+    lat: 55.75
+    lon: 37.62
+    url: "https://ria.ru/20220222/sovfed-1774000001.html"
+    origin_domain: ria.ru
+  - at: "2022-02-22T11:00:00Z"
+    source: mod_russia_tg
+    title: "Подразделения Вооружённых сил России вошли в Донбасс для выполнения миротворческой миссии"
+    body: >-
+      Военнослужащие Вооружённых сил Российской Федерации приступили к выполнению
+      задач миротворческой миссии на территории Донецкой и Луганской народных
+      республик по просьбе их руководства.
+    category: eu_ru
+    theater: EU_RU
+    country: RU
+    lat: 48.0
+    lon: 37.8
+    url: "https://t.me/s/mod_russia/11000"
+    origin_domain: t.me
+  - at: "2022-02-22T13:00:00Z"
+    source: gnews_consilium
+    title: "EU Council adopts sanctions package in response to Russia's recognition of DNR and LNR"
+    body: >-
+      The Council adopted a package of sanctions in response to Russia's decision to
+      recognise the independence of the so-called DNR and LNR, targeting banks and
+      officials involved in the violation of Ukraine's territorial integrity.
+    category: eu_ru
+    theater: EU_RU
+    country: BE
+    lat: 50.85
+    lon: 4.35
+    url: "https://news.google.com/rss/articles/eu-sanctions-2022-02-22"
+    origin_domain: news.google.com
+  - at: "2022-02-22T20:00:00Z"
+    source: nato_news
+    title: "NATO Allies deploy additional forces to the eastern flank"
+    body: >-
+      In response to Russia's continued military build-up, NATO Allies are deploying
+      additional forces to the eastern part of the Alliance. The measures are
+      defensive and proportionate.
+    category: eu_ru
+    theater: EU_RU
+    country: BE
+    lat: 50.85
+    lon: 4.35
+    url: "https://www.nato.int/cps/en/natohq/news_192100.htm"
+    origin_domain: nato.int

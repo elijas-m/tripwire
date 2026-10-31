@@ -1,0 +1,38 @@
+# Контроль ложных §15: Steadfast Defender 2024 не должен превышать WATCH.
+id: control-steadfast-defender-2024
+name: "Контроль: Steadfast Defender 2024"
+expect: WATCH
+control: true
+provenance: >-
+  Тексты — по публикациям DoD (war.gov, 25.01.2024) и SHAPE/NATO
+  (shape.nato.int, 24.01.2024).
+events:
+  - at: "2024-01-24T12:00:00Z"
+    source: dod_rss
+    tier0: true
+    title: "NATO Begins Largest Exercise Since Cold War"
+    body: >-
+      Dubbed Exercise Steadfast Defender 24, it will feature about 90,000 service
+      members from the 31 NATO allies and Sweden. It will test the ability of the
+      alliance to deploy forces rapidly across Europe.
+    category: eu_ru
+    theater: EU_RU
+    country: BE
+    lat: 50.85
+    lon: 4.35
+    url: "https://www.war.gov/News/News-Stories/Article/Article/3656703/nato-begins-largest-exercise-since-cold-war/"
+    origin_domain: war.gov
+  - at: "2024-01-24T13:00:00Z"
+    source: nato_news
+    title: "NATO marks the start of Exercise Steadfast Defender 2024"
+    body: >-
+      Exercise Steadfast Defender 24, NATO's largest exercise in decades, began on
+      Wednesday, January 24, 2024. The exercise is a scheduled demonstration of
+      alliance unity and preparedness.
+    category: eu_ru
+    theater: EU_RU
+    country: BE
+    lat: 50.85
+    lon: 4.35
+    url: "https://shape.nato.int/news-archive/2024/nato-marks-the-start-of-exercise-steadfast-defender-2024"
+    origin_domain: nato.int

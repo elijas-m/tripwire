@@ -1,0 +1,50 @@
+# 14.09.2019 — атака на Abqaiq/Khurais. Ожидание §15: CRITICAL.
+id: 2019-09-14-abqaiq
+name: "14.09.2019 — атака на Abqaiq и Khurais"
+expect: CRITICAL
+provenance: >-
+  Реконструкция по заявлению Министерства энергетики КСА (SPA) и сообщению Saudi
+  Aramco от 14.09.2019; формулировки приведены к официальным.
+events:
+  - at: "2019-09-14T04:00:00Z"
+    source: spa_en
+    tier0: true
+    title: "Saudi Energy Ministry: terrorist drone attacks targeted Aramco facilities in Abqaiq and Khurais"
+    body: >-
+      The Ministry of Energy announced that terrorist drone attacks targeted two
+      facilities of Saudi Aramco in Abqaiq and Khurais. The attacks caused fires at
+      the two plants; production of 5.7 million barrels per day was disrupted.
+    category: gulf
+    theater: GULF
+    country: SA
+    lat: 25.94
+    lon: 49.68
+    url: "https://www.spa.gov.sa/en/N1855937"
+    origin_domain: spa.gov.sa
+  - at: "2019-09-14T04:25:00Z"
+    source: aramco_news
+    title: "Saudi Aramco: fires at Abqaiq and Khurais facilities brought under control"
+    body: >-
+      Saudi Aramco confirms that fires at its facilities in Abqaiq and Khurais were
+      brought under control. The company says there were no injuries and that it is
+      assessing the impact on production.
+    category: gulf
+    theater: GULF
+    country: SA
+    lat: 25.94
+    lon: 49.68
+    url: "https://www.aramco.com/en/news-media/news/2019/abqaiq-khurais-update"
+    origin_domain: aramco.com
+  - at: "2019-09-14T05:10:00Z"
+    source: gdacs_rss
+    title: "GDACS: industrial accident / fires at Abqaiq oil processing facility, Saudi Arabia"
+    body: >-
+      GDACS reports fires at the Abqaiq oil processing facility following drone
+      attacks; local authorities report no casualties.
+    category: disaster
+    theater: GULF
+    country: SA
+    lat: 25.94
+    lon: 49.68
+    url: "https://www.gdacs.org/report.aspx?eventid=1000000"
+    origin_domain: gdacs.org

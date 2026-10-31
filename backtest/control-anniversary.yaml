@@ -1,0 +1,37 @@
+# Контроль ложных §15: годовщины и аналитика не должны превышать WATCH.
+id: control-anniversary
+name: "Контроль: годовщины и аналитика"
+expect: WATCH
+control: true
+provenance: >-
+  Реконструкция типовых годовщинных и аналитических публикаций 24.02.2023
+  (РИА Новости, nato.int).
+events:
+  - at: "2023-02-24T06:00:00Z"
+    source: ria_rss
+    tier0: true
+    title: "Год с начала специальной военной операции: итоги и прогнозы"
+    body: >-
+      Ровно год назад началась специальная военная операция. Аналитики подводят
+      итоги, эксперты считают, что конфликт может привести к затяжному кризису.
+    category: eu_ru
+    theater: EU_RU
+    country: RU
+    lat: 55.75
+    lon: 37.62
+    url: "https://ria.ru/20230224/itogi-1800000000.html"
+    origin_domain: ria.ru
+  - at: "2023-02-24T09:00:00Z"
+    source: nato_news
+    title: "One year since Russia's full-scale invasion of Ukraine"
+    body: >-
+      One year ago, Russia launched its full-scale invasion of Ukraine. NATO
+      commemorates the anniversary and reaffirms support for Ukraine's sovereignty.
+      This retrospective looks at the alliance's response over the past year.
+    category: eu_ru
+    theater: EU_RU
+    country: BE
+    lat: 50.85
+    lon: 4.35
+    url: "https://www.nato.int/cps/en/natohq/news_211000.htm"
+    origin_domain: nato.int

@@ -1,0 +1,245 @@
+# Theaters, countries, bounding boxes, watch-lists.
+version: 1
+
+theaters:
+  EU_RU:
+    label: "Европа/Россия"
+    countries: [RU, BY, UA, PL, LT, LV, EE, FI, "NO", SE, RO, MD, DE, CZ, SK, HU, DK, NL, BE, FR, GB, IT, ES, PT, GR, TR, BG, HR, SI, AT, CH, IE, IS, US, CA]
+    core_countries: [RU, BY, UA, PL, LT, LV, EE, FI, "NO", SE, RO, MD]
+    bboxes:
+      - [44.0, 10.0, 70.0, 60.0]      # Europe incl. Baltic/Black Sea
+    keywords: [nato, russia, ukraine, kremlin, poland, lithuania, latvia, estonia, finland, norway, belarus, kaliningrad, black sea, baltic, mobilization, article 5, статья 5, россия, украина, нато, кремль, беларусь, калининград]
+
+  ISRAEL:
+    label: "Израиль/Иран/Левант"
+    countries: [IL, IR, LB, SY, YE, PS, IQ, JO, EG]
+    core_countries: [IL, IR, LB, PS, SY, YE]
+    bboxes:
+      - [27.0, 33.0, 38.5, 60.0]      # Levant + Iran + Yemen
+    keywords: [israel, idf, gaza, lebanon, hezbollah, hamas, iran, irgc, yemen, houthi, syria, tehran, jerusalem, tel aviv, израил, цахал, газа, ливан, хизбалла, иран, йемен, сирия, ישראל, צה"ל, עזה, איראן]
+
+  GULF:
+    label: "Залив/Саудовская Аравия"
+    countries: [SA, AE, QA, KW, BH, OM, YE, IR, IQ]
+    core_countries: [SA, AE, QA, KW, BH, OM]
+    bboxes:
+      - [12.0, 34.0, 32.0, 60.0]
+    keywords: [hormuz, tanker, aramco, saudi, uae, qatar, kuwait, bahrain, oman, red sea, ras tanura, abqaiq, jubail, ормуз, танкер, саудов, катар, красное море, הורמוז, סעודיה]
+    oil_infrastructure: [Ras Tanura, Abqaiq, Jubail, Khurais, Shaybah, Yanbu, Ras Laffan, Ruwais, Fujairah]
+
+  PANDEMIC:
+    label: "Здоровье"
+    countries: ["*"]
+    bboxes: []
+    keywords: [who, outbreak, epidemic, pandemic, pathogen, virus, influenza, ebola, marburg, nipah, cholera, measles, mpox, вспышка, эпидемия, пандемия, вирус, מגפה, התפרצות]
+
+  NATURE:
+    label: "Природа"
+    countries: ["*"]
+    bboxes: []
+    keywords: [earthquake, tsunami, volcano, eruption, землетрясение, цунами, вулкан, רעידת אדמה, צונאמי]
+
+  MARKETS:
+    label: "Рынки"
+    countries: []
+    bboxes: []
+    keywords: [brent, oil, gold, vix, рубль, нефть, золото]
+
+nato:
+  countries: [US, CA, GB, FR, DE, IT, ES, PT, NL, BE, LU, DK, "NO", IS, PL, CZ, SK, HU, RO, BG, GR, TR, EE, LV, LT, SI, HR, AL, ME, MK, FI, SE]
+eu:
+  countries: [AT, BE, BG, HR, CY, CZ, DK, EE, FI, FR, DE, GR, HU, IE, IT, LV, LT, LU, MT, NL, PL, PT, RO, SK, SI, ES, SE]
+
+# Known flashpoints used for "geo inside" decisions when no explicit country match.
+flashpoints:
+  - {name: Kaliningrad, lat: 54.71, lon: 20.51, radius_km: 120, theater: EU_RU}
+  - {name: Transnistria, lat: 46.84, lon: 29.63, radius_km: 80, theater: EU_RU}
+  - {name: Baltic Sea, lat: 57.0, lon: 20.0, radius_km: 400, theater: EU_RU}
+  - {name: Black Sea, lat: 43.4, lon: 34.0, radius_km: 500, theater: EU_RU}
+  - {name: Strait of Hormuz, lat: 26.57, lon: 56.25, radius_km: 150, theater: GULF}
+  - {name: Gaza, lat: 31.45, lon: 34.4, radius_km: 60, theater: ISRAEL}
+  - {name: Southern Lebanon, lat: 33.3, lon: 35.4, radius_km: 80, theater: ISRAEL}
+  - {name: Golan Heights, lat: 33.0, lon: 35.75, radius_km: 60, theater: ISRAEL}
+  - {name: Taiwan Strait, lat: 24.5, lon: 119.5, radius_km: 300, theater: NATURE}
+
+# Destination regions for force-projection stories. A deployment is attributed
+# to the theater it projects into, not to the actor's home theater. First match
+# wins; explicit countries come before the generic "Middle East" label.
+force_projection_regions:
+  - theater: ISRAEL
+    aliases: [israel, israeli, израил, tel aviv, тель-авив, jerusalem, иерусалим,
+              lebanon, ливан, beirut, бейрут, gaza, газа, syria, сирия, iran, иран,
+              tehran, тегеран, houthi, хусит]
+  - theater: GULF
+    aliases: [saudi, саудовск, uae, emirates, эмират, qatar, катар, kuwait, кувейт,
+              bahrain, бахрейн, oman, оман, yemen, йемен, iraq, ирак, persian gulf,
+              персидский залив, strait of hormuz, ормузский пролив, red sea,
+              красное море]
+  - theater: EU_RU
+    aliases: [poland, польш, lithuania, литв, latvia, латв, estonia, эстон, finland,
+              финлянд, ukraine, украин, black sea, черное море, kaliningrad,
+              калининград, belarus, беларус, romania, румын, moldova, молдов]
+  - theater: GULF
+    aliases: [middle east, ближний восток, ближневосточн, near east]
+
+# Extra weight for pandemic signals in dense / high-risk regions (§6.3).
+pandemic_boost:
+  factor: 1.25
+  countries: [CN, HK, TW, VN, TH, ID, MY, PH, SG, MM, KH, LA, BN, TL, IN, BD, PK, NG, CD, ET, KE, TZ, ZA, UG, GH, CI, SN, CM, MZ, ZM, ZW, MW, AO, ML, BF, NE, TD, SD, SS, SO, MG, RW, BI]
+
+# High-consequence volcanoes (§7.2).
+high_consequence_volcanoes:
+  - Campi Flegrei
+  - Vesuvio
+  - Vesuvius
+  - Katla
+  - Bárðarbunga
+  - Bardarbunga
+  - Öræfajökull
+  - Oraefajokull
+  - Yellowstone
+  - Taal
+  - Sakurajima
+  - Merapi
+  - Popocatépetl
+  - Popocatepetl
+  - Rainier
+  - Fuji
+  - Etna
+  - Stromboli
+  - Grímsvötn
+  - Grimsvotn
+  - Askja
+  - Hekla
+  - Long Valley
+  - Campi Flegrei
+  - Nyiragongo
+  - Villarrica
+  - Cotopaxi
+  - Agung
+  - Sinabung
+  - Kelud
+  - Aso
+  - Unzen
+  - Pinatubo
+  - Mayon
+  - Tungurahua
+  - Santorini
+  - Kolumbo
+
+# Supervolcanoes used by the M≥4.5 swarm rule (§7.1).
+supervolcanoes:
+  - Campi Flegrei
+  - Yellowstone
+  - Taupo
+  - Toba
+  - Long Valley
+  - Valles Caldera
+
+supervolcano_zones:
+  - {name: Campi Flegrei, lat: 40.826, lon: 14.139}
+  - {name: Yellowstone, lat: 44.430, lon: -110.670}
+  - {name: Taupo, lat: -38.820, lon: 175.930}
+  - {name: Toba, lat: 2.684, lon: 98.875}
+  - {name: Long Valley, lat: 37.700, lon: -118.870}
+  - {name: Valles Caldera, lat: 35.870, lon: -106.570}
+
+# Named pathogen watch-list with amplified weights (§7.3).
+watchlist_pathogens:
+  - H5N1
+  - H5N5
+  - H7N9
+  - MERS-CoV
+  - Nipah
+  - Marburg
+  - Ebola
+  - Bundibugyo
+  - SARS-CoV-2
+  - mpox
+  - monkeypox
+  - H7N9
+  - H9N2
+  - MERS-CoV
+  - MERS
+  - Nipah
+  - Marburg
+  - Ebola Sudan
+  - Ebola Zaire
+  - Ebola
+  - Lassa
+  - Rift Valley fever
+  - SARS-CoV
+  - Mpox clade I
+  - monkeypox clade I
+  - measles
+  - cholera
+  - polio
+  - disease X
+  - unknown pneumonia
+
+# Static district registry for Oref coverage share (§6.1). Approximate HFC areas.
+# A district counts as "alerted" when any of its anchor localities appears in an alert.
+oref_districts:
+  - {name: Galilee West, cities: [Nahariya, Acre, Akko, Shlomi, Maalot Tarshiha]}
+  - {name: Galilee East, cities: [Tiberias, Safed, Zefat, Kiryat Shmona]}
+  - {name: Jezreel Valley, cities: [Afula, Beit She'an, Migdal HaEmek, Yokneam]}
+  - {name: Haifa, cities: [Haifa, Kiryat Bialik, Kiryat Motzkin, Kiryat Yam, Nesher, Tirat Carmel]}
+  - {name: Carmel Coast, cities: [Hadera, Caesarea, Zikhron Yaakov, Pardes Hanna]}
+  - {name: Sharon, cities: [Netanya, Herzliya, Kfar Saba, Ra'anana, Hod HaSharon]}
+  - {name: Tel Aviv, cities: [Tel Aviv, Ramat Gan, Bnei Brak, Givatayim, Bat Yam, Holon]}
+  - {name: Dan, cities: [Petah Tikva, Ramat HaSharon, Kiryat Ono, Or Yehuda, Savyon]}
+  - {name: Shephelah, cities: [Rehovot, Rishon LeZion, Ness Ziona, Yavne, Gedera]}
+  - {name: Jerusalem, cities: [Jerusalem, Beit Shemesh, Mevaseret Zion, Abu Ghosh]}
+  - {name: Judea, cities: [Efrat, Gush Etzion, Kiryat Arba, Hebron]}
+  - {name: Samaria, cities: [Ariel, Maale Adumim, Modi'in Illit, Beitar Illit]}
+  - {name: Jordan Valley, cities: [Jericho, Maale Efraim, Beit HaArava]}
+  - {name: Dead Sea, cities: [Ein Gedi, Masada, Arad]}
+  - {name: Northern Negev, cities: [Beer Sheva, Ofakim, Netivot, Sderot]}
+  - {name: Ashkelon Coast, cities: [Ashkelon, Ashdod, Kiryat Malakhi, Kiryat Gat]}
+  - {name: Southern Negev, cities: [Dimona, Yeruham, Mitzpe Ramon]}
+  - {name: Arava, cities: [Eilat, Yotvata, Sapir]}
+  - {name: Gaza Envelope, cities: [Sderot, Nir Oz, Kfar Aza, Be'eri, Kerem Shalom]}
+  - {name: Golan, cities: [Katzrin, Majdal Shams, Neve Ativ]}
+  - {name: Upper Galilee, cities: [Metula, Kiryat Shmona, Rosh Pinna]}
+  - {name: Western Galilee, cities: [Nahariya, Shavei Zion, Regba]}
+  - {name: Menashe, cities: [Pardes Hanna, Binyamina, Zikhron Yaakov]}
+  - {name: Emek Hefer, cities: [Hadera, Netanya, Kfar Vitkin]}
+  - {name: Lachish, cities: [Kiryat Gat, Lachish, Bet Guvrin]}
+  - {name: Bnei Shimon, cities: [Ofakim, Rahat, Lehavim]}
+  - {name: Central Negev, cities: [Dimona, Yeruham]}
+  - {name: Eilat, cities: [Eilat]}
+  - {name: Jordan Valley North, cities: [Beit She'an, Gesher]}
+  - {name: Beit She'an Valley, cities: [Beit She'an, Sde Eliyahu]}
+
+# Administrative regions used by the Ukraine mass-alert indicator (§7.4).
+ukraine_oblasts:
+  - Вінницька область
+  - Волинська область
+  - Дніпропетровська область
+  - Донецька область
+  - Житомирська область
+  - Закарпатська область
+  - Запорізька область
+  - Івано-Франківська область
+  - Київська область
+  - Кіровоградська область
+  - Луганська область
+  - Львівська область
+  - Миколаївська область
+  - Одеська область
+  - Полтавська область
+  - Рівненська область
+  - Сумська область
+  - Тернопільська область
+  - Харківська область
+  - Херсонська область
+  - Хмельницька область
+  - Черкаська область
+  - Чернівецька область
+  - Чернігівська область
+  - м. Київ
+  - Севастополь
+  - Автономна Республіка Крим
+
+# Countries whose complete airspace closure is a tripwire.
+airspace_tripwire_countries: [RU, BY, UA, PL, LT, LV, EE, FI, "NO", SE, RO, MD, DE, CZ, SK, HU, SA, AE, QA, KW, BH, OM, IL, IR]

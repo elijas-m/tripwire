@@ -1,0 +1,220 @@
+# Gazetteer: country names (en/ru/he) and key places used for geotagging.
+# Matching is case-insensitive substring on normalized text; longest alias wins.
+version: 1
+
+countries:
+  RU: {names: [russia, russian federation, российская федерация, россия, רוסיה]}
+  BY: {names: [belarus, беларусь, белоруссия, בלארוס]}
+  UA: {names: [ukraine, украина, україна, אוקראינה]}
+  PL: {names: [poland, польша, польша, פולין]}
+  LT: {names: [lithuania, литва, ליטא]}
+  LV: {names: [latvia, латвия, לטביה]}
+  EE: {names: [estonia, эстония, אסטוניה]}
+  FI: {names: [finland, финляндия, פינלנד]}
+  "NO": {names: [norway, норвегия, נורווגיה]}
+  SE: {names: [sweden, швеция, שוודיה]}
+  RO: {names: [romania, румыния, רומניה]}
+  MD: {names: [moldova, молдова, מולדובה]}
+  DE: {names: [germany, немецкий, германия, גרמניה]}
+  CZ: {names: [czech republic, czechia, чехия, צ'כיה]}
+  SK: {names: [slovakia, словакия, סלובקיה]}
+  HU: {names: [hungary, венгрия, הונגריה]}
+  DK: {names: [denmark, дания, דנמרק]}
+  NL: {names: [netherlands, нидерланды, הולנד]}
+  BE: {names: [belgium, бельгия, בלגיה]}
+  FR: {names: [france, французский, франция, צרפת]}
+  GB: {names: [united kingdom, britain, british, uk, великобритания, британия, בריטניה]}
+  IT: {names: [italy, италия, איטליה]}
+  ES: {names: [spain, испания, ספרד]}
+  PT: {names: [portugal, португалия, פורטוגל]}
+  GR: {names: [greece, греция, יוון]}
+  TR: {names: [turkey, türkiye, турция, טורקיה]}
+  BG: {names: [bulgaria, болгария, בולגריה]}
+  HR: {names: [croatia, хорватия, קרואטיה]}
+  SI: {names: [slovenia, словения, סלובניה]}
+  AT: {names: [austria, австрия, אוסטריה]}
+  CH: {names: [switzerland, швейцария, שווייץ]}
+  IE: {names: [ireland, ирландия, אירלנד]}
+  IS: {names: [iceland, исландия, איסלנד]}
+  US: {names: [united states, american, usa, сша, соединённые штаты, ארצות הברית]}
+  CA: {names: [canada, канада, קנדה]}
+  IL: {names: [israel, israeli, израиль, ישראל]}
+  IR: {names: [iran, iranian, иран, איראן]}
+  LB: {names: [lebanon, ливан, לבנון]}
+  SY: {names: [syria, syrian, сирия, סוריה]}
+  YE: {names: [yemen, yemeni, йемен, תימן]}
+  PS: {names: [palestine, palestinian, palestinian territories, палестина, فلسطين]}
+  IQ: {names: [iraq, ирак, עיראק]}
+  JO: {names: [jordan, иордания, ירדן]}
+  EG: {names: [egypt, египет, מצרים]}
+  SA: {names: [saudi arabia, saudi, саудовская аравия, סעודיה]}
+  AE: {names: [united arab emirates, uae, оаэ, эмираты, איחוד האמירויות]}
+  QA: {names: [qatar, катар, קטאר]}
+  KW: {names: [kuwait, кувейт, כווית]}
+  BH: {names: [bahrain, бахрейн, בחריין]}
+  OM: {names: [oman, оман, עומאן]}
+  CN: {names: [china, chinese, китай, סין]}
+  HK: {names: [hong kong, гонконг, הונג קונג]}
+  JP: {names: [japan, япония, יפן]}
+  KR: {names: [south korea, korea, южная корея, корея, דרום קוריאה]}
+  KP: {names: [north korea, кндр, северная корея, צפון קוריאה]}
+  TW: {names: [taiwan, тайвань, טייוואן]}
+  IN: {names: [india, индия, הודו]}
+  PK: {names: [pakistan, пакистан, פקיסטן]}
+  AF: {names: [afghanistan, афганистан, אפגניסטן]}
+  ID: {names: [indonesia, индонезия, אינדונזיה]}
+  PH: {names: [philippines, филиппины, הפיליפינים]}
+  VN: {names: [vietnam, вьетнам, וייטנאם]}
+  TH: {names: [thailand, таиланд, תאילנד]}
+  MY: {names: [malaysia, малайзия, מלזיה]}
+  SG: {names: [singapore, сингапур, סינגפור]}
+  AU: {names: [australia, австралия, אוסטרליה]}
+  NZ: {names: [new zealand, новая зеландия, ניו זילנד]}
+  NG: {names: [nigeria, нигерия, ניגריה]}
+  CD: {names: [democratic republic of the congo, dr congo, конго, הרפובליקה הדמוקרטית של קונגו]}
+  UG: {names: [uganda, уганда, אוגנדה]}
+  KE: {names: [kenya, кения, קניה]}
+  SO: {names: [somalia, сомали, סומליה]}
+  SD: {names: [sudan, судан, סודאן]}
+  ET: {names: [ethiopia, эфиопия, אתיופיה]}
+  ZA: {names: [south africa, юар, דרום אפריקה]}
+  BR: {names: [brazil, бразилия, ברזיל]}
+  AR: {names: [argentina, аргентина, ארגנטינה]}
+  CL: {names: [chile, чили, צ'ילה]}
+  MX: {names: [mexico, мексика, מקסיקו]}
+  CO: {names: [colombia, колумбия, קולומביה]}
+  EC: {names: [ecuador, эквадор, אקוודור]}
+  VE: {names: [venezuela, венесуэла, ונצואלה]}
+  CU: {names: [cuba, куба, קובה]}
+  HT: {names: [haiti, гаити, האיטי]}
+  PA: {names: [panama, панама, פנמה]}
+
+places:
+  - {name: Moscow, aliases: [moscow, москва, מוסקבה], country: RU, lat: 55.7558, lon: 37.6173, theater: EU_RU, kind: capital}
+  - {name: Kyiv, aliases: [kyiv, kiev, киев, київ, קייב], country: UA, lat: 50.4501, lon: 30.5234, theater: EU_RU, kind: capital}
+  - {name: Minsk, aliases: [minsk, минск, מינסק], country: BY, lat: 53.9006, lon: 27.5590, theater: EU_RU, kind: capital}
+  - {name: Warsaw, aliases: [warsaw, warszawa, варшава, ורשה], country: PL, lat: 52.2297, lon: 21.0122, theater: EU_RU, kind: capital}
+  - {name: Vilnius, aliases: [vilnius, вильнюс, וילנה], country: LT, lat: 54.6872, lon: 25.2797, theater: EU_RU, kind: capital}
+  - {name: Riga, aliases: [riga, рига, ריגה], country: LV, lat: 56.9496, lon: 24.1052, theater: EU_RU, kind: capital}
+  - {name: Tallinn, aliases: [tallinn, таллин, טאלין], country: EE, lat: 59.4370, lon: 24.7536, theater: EU_RU, kind: capital}
+  - {name: Helsinki, aliases: [helsinki, хельсинки, הלסינקי], country: FI, lat: 60.1699, lon: 24.9384, theater: EU_RU, kind: capital}
+  - {name: Oslo, aliases: [oslo, осло, אוסלו], country: "NO", lat: 59.9139, lon: 10.7522, theater: EU_RU, kind: capital}
+  - {name: Stockholm, aliases: [stockholm, стокгольм, שטוקהולם], country: SE, lat: 59.3293, lon: 18.0686, theater: EU_RU, kind: capital}
+  - {name: Bucharest, aliases: [bucharest, бухарест, בוקרשט], country: RO, lat: 44.4268, lon: 26.1025, theater: EU_RU, kind: capital}
+  - {name: Chisinau, aliases: [chisinau, chișinău, кишинёв, קישינב], country: MD, lat: 47.0105, lon: 28.8638, theater: EU_RU, kind: capital}
+  - {name: Berlin, aliases: [berlin, берлин, ברלין], country: DE, lat: 52.5200, lon: 13.4050, theater: EU_RU, kind: capital}
+  - {name: Prague, aliases: [prague, прага, פראג], country: CZ, lat: 50.0755, lon: 14.4378, theater: EU_RU, kind: capital}
+  - {name: Bratislava, aliases: [bratislava, братислава, ברטיסלבה], country: SK, lat: 48.1486, lon: 17.1077, theater: EU_RU, kind: capital}
+  - {name: Budapest, aliases: [budapest, будапешт, בודפשט], country: HU, lat: 47.4979, lon: 19.0402, theater: EU_RU, kind: capital}
+  - {name: Paris, aliases: [paris, париж, פריז], country: FR, lat: 48.8566, lon: 2.3522, theater: EU_RU, kind: capital}
+  - {name: London, aliases: [london, лондон, לונדון], country: GB, lat: 51.5074, lon: -0.1278, theater: EU_RU, kind: capital}
+  - {name: Brussels, aliases: [brussels, брюссель, בריסל], country: BE, lat: 50.8503, lon: 4.3517, theater: EU_RU, kind: capital}
+  - {name: Washington, aliases: [washington, вашингтон, וושינגטון], country: US, lat: 38.9072, lon: -77.0369, theater: EU_RU, kind: capital}
+  - {name: Kaliningrad, aliases: [kaliningrad, калининград, קלינינגרד], country: RU, lat: 54.7104, lon: 20.4522, theater: EU_RU, kind: city}
+  - {name: Sevastopol, aliases: [sevastopol, севастополь, סבסטופול], country: UA, lat: 44.6166, lon: 33.5254, theater: EU_RU, kind: city}
+  - {name: Crimea, aliases: [crimea, крым, קרים], country: UA, lat: 45.3453, lon: 34.4997, theater: EU_RU, kind: region}
+  - {name: Donetsk, aliases: [donetsk, донецк, דונייצק], country: UA, lat: 48.0159, lon: 37.8029, theater: EU_RU, kind: city}
+  - {name: Luhansk, aliases: [luhansk, lugansk, луганск, לוהנסק], country: UA, lat: 48.5740, lon: 39.3078, theater: EU_RU, kind: city}
+  - {name: Kharkiv, aliases: [kharkiv, kharkov, харьков, חרקוב], country: UA, lat: 49.9935, lon: 36.2304, theater: EU_RU, kind: city}
+  - {name: Odesa, aliases: [odesa, odessa, одесса, אודסה], country: UA, lat: 46.4825, lon: 30.7233, theater: EU_RU, kind: city}
+  - {name: Zaporizhzhia, aliases: [zaporizhzhia, zaporozhye, запорожье, זפוריז'יה], country: UA, lat: 47.8388, lon: 35.1396, theater: EU_RU, kind: city}
+  - {name: Belgorod, aliases: [belgorod, белгород, בלגורוד], country: RU, lat: 50.5977, lon: 36.5858, theater: EU_RU, kind: city}
+  - {name: Kursk, aliases: [kursk, курск, קורסק], country: RU, lat: 51.7304, lon: 36.1926, theater: EU_RU, kind: city}
+  - {name: Bryansk, aliases: [bryansk, брянск, בריאנסק], country: RU, lat: 53.2434, lon: 34.3639, theater: EU_RU, kind: city}
+  - {name: Rostov-on-Don, aliases: [rostov-on-don, ростов-на-дону, רוסטוב], country: RU, lat: 47.2357, lon: 39.7015, theater: EU_RU, kind: city}
+  - {name: Transnistria, aliases: [transnistria, приднестровье, טרנסניסטריה], country: MD, lat: 46.8403, lon: 29.6299, theater: EU_RU, kind: region}
+  - {name: Baltic Sea, aliases: [baltic sea, балтийское море, הים הבלטי], country: SE, lat: 57.0, lon: 20.0, theater: EU_RU, kind: sea}
+  - {name: Black Sea, aliases: [black sea, чёрное море, черное море, הים השחור], country: RO, lat: 43.4, lon: 34.0, theater: EU_RU, kind: sea}
+  - {name: Suwalki, aliases: [suwalki, suwałki, сувалки, סובאלקי], country: PL, lat: 54.1118, lon: 22.9309, theater: EU_RU, kind: corridor}
+
+  - {name: Jerusalem, aliases: [jerusalem, иерусалим, ירושלים], country: IL, lat: 31.7683, lon: 35.2137, theater: ISRAEL, kind: capital}
+  - {name: Tel Aviv, aliases: [tel aviv, тель-авив, תל אביב], country: IL, lat: 32.0853, lon: 34.7818, theater: ISRAEL, kind: city}
+  - {name: Haifa, aliases: [haifa, хайфа, חיפה], country: IL, lat: 32.7940, lon: 34.9896, theater: ISRAEL, kind: city}
+  - {name: Beersheba, aliases: [beersheba, beer sheva, беэр-шева, באר שבע], country: IL, lat: 31.2530, lon: 34.7915, theater: ISRAEL, kind: city}
+  - {name: Eilat, aliases: [eilat, эйлат, אילת], country: IL, lat: 29.5577, lon: 34.9519, theater: ISRAEL, kind: city}
+  - {name: Ashkelon, aliases: [ashkelon, ашкелон, אשקלון], country: IL, lat: 31.6688, lon: 34.5743, theater: ISRAEL, kind: city}
+  - {name: Sderot, aliases: [sderot, сдерот, שדרות], country: IL, lat: 31.5240, lon: 34.5955, theater: ISRAEL, kind: city}
+  - {name: Ben Gurion Airport, aliases: [ben gurion, ben-gurion, llbg, бен-гурион, נתב"ג], country: IL, lat: 32.0114, lon: 34.8867, theater: ISRAEL, kind: airport}
+  - {name: Gaza, aliases: [gaza, gaza strip, газа, сектор газа, עזה], country: PS, lat: 31.5017, lon: 34.4668, theater: ISRAEL, kind: region}
+  - {name: Rafah, aliases: [rafah, рафах, רפיח], country: PS, lat: 31.2968, lon: 34.2456, theater: ISRAEL, kind: city}
+  - {name: Khan Yunis, aliases: [khan younis, khan yunis, хан-юнис, خان يونس], country: PS, lat: 31.3400, lon: 34.3065, theater: ISRAEL, kind: city}
+  - {name: Beirut, aliases: [beirut, бейрут, ביירות], country: LB, lat: 33.8938, lon: 35.5018, theater: ISRAEL, kind: capital}
+  - {name: Southern Lebanon, aliases: [southern lebanon, south lebanon, южный ливан, דרום לבנון], country: LB, lat: 33.3, lon: 35.4, theater: ISRAEL, kind: region}
+  - {name: Damascus, aliases: [damascus, дамаск, דמשק], country: SY, lat: 33.5138, lon: 36.2765, theater: ISRAEL, kind: capital}
+  - {name: Golan Heights, aliases: [golan, голаны, רמת הגולן], country: SY, lat: 33.0, lon: 35.75, theater: ISRAEL, kind: region}
+  - {name: Tehran, aliases: [tehran, тегеран, טהרן], country: IR, lat: 35.6892, lon: 51.3890, theater: ISRAEL, kind: capital}
+  - {name: Isfahan, aliases: [isfahan, исфахан, אספהאן], country: IR, lat: 32.6546, lon: 51.6680, theater: ISRAEL, kind: city}
+  - {name: Natanz, aliases: [natanz, натанз, נתנז], country: IR, lat: 33.7247, lon: 51.7267, theater: ISRAEL, kind: nuclear}
+  - {name: Fordow, aliases: [fordow, фордоу, פורדו], country: IR, lat: 34.8847, lon: 50.9928, theater: ISRAEL, kind: nuclear}
+  - {name: Bushehr, aliases: [bushehr, бушер, בושהר], country: IR, lat: 28.9234, lon: 50.8203, theater: ISRAEL, kind: nuclear}
+  - {name: Arak, aliases: [arak, арак, אראק], country: IR, lat: 34.0917, lon: 49.6892, theater: ISRAEL, kind: nuclear}
+  - {name: Bandar Abbas, aliases: [bandar abbas, бандар-аббас, בנדר עבאס], country: IR, lat: 27.1865, lon: 56.2808, theater: GULF, kind: port}
+  - {name: Sanaa, aliases: [sanaa, сана, צנעא], country: YE, lat: 15.3694, lon: 44.1910, theater: ISRAEL, kind: capital}
+  - {name: Hodeidah, aliases: [hodeidah, hudaydah, ходейда, אל-חודיידה], country: YE, lat: 14.7978, lon: 42.9545, theater: ISRAEL, kind: port}
+  - {name: Baghdad, aliases: [baghdad, багдад, בגדד], country: IQ, lat: 33.3152, lon: 44.3661, theater: ISRAEL, kind: capital}
+  - {name: Erbil, aliases: [erbil, эрбиль, ארביל], country: IQ, lat: 36.1901, lon: 44.0091, theater: ISRAEL, kind: city}
+  - {name: Ain al-Asad, aliases: [ain al-asad, ain al asad, айн-аль-асад], country: IQ, lat: 33.7855, lon: 42.4413, theater: ISRAEL, kind: military}
+
+  - {name: Riyadh, aliases: [riyadh, эр-рияд, ריאד], country: SA, lat: 24.7136, lon: 46.6753, theater: GULF, kind: capital}
+  - {name: Ras Tanura, aliases: [ras tanura, рас-танура, ראס תנאורה], country: SA, lat: 26.6444, lon: 50.1592, theater: GULF, kind: oil}
+  - {name: Abqaiq, aliases: [abqaiq, абкайк, אבקייק], country: SA, lat: 25.9370, lon: 49.6776, theater: GULF, kind: oil}
+  - {name: Jubail, aliases: [jubail, джубейль, ג'ובייל], country: SA, lat: 27.0046, lon: 49.6460, theater: GULF, kind: oil}
+  - {name: Khurais, aliases: [khurais, хурайс, חורייס], country: SA, lat: 25.0750, lon: 48.1720, theater: GULF, kind: oil}
+  - {name: Shaybah, aliases: [shaybah, шейба, שייבה], country: SA, lat: 22.5200, lon: 54.0000, theater: GULF, kind: oil}
+  - {name: Yanbu, aliases: [yanbu, янбу, ינבו], country: SA, lat: 24.0895, lon: 38.0618, theater: GULF, kind: port}
+  - {name: Jeddah, aliases: [jeddah, джидда, ג'דה], country: SA, lat: 21.4858, lon: 39.1925, theater: GULF, kind: city}
+  - {name: Dammam, aliases: [dammam, даммам, דמאם], country: SA, lat: 26.4207, lon: 50.0888, theater: GULF, kind: city}
+  - {name: Dubai, aliases: [dubai, дубай, דובאי], country: AE, lat: 25.2048, lon: 55.2708, theater: GULF, kind: city}
+  - {name: Abu Dhabi, aliases: [abu dhabi, абу-даби, אבו דאבי], country: AE, lat: 24.4539, lon: 54.3773, theater: GULF, kind: capital}
+  - {name: Fujairah, aliases: [fujairah, фуджейра, פוג'יירה], country: AE, lat: 25.1288, lon: 56.3265, theater: GULF, kind: port}
+  - {name: Doha, aliases: [doha, доха, דוחה], country: QA, lat: 25.2854, lon: 51.5310, theater: GULF, kind: capital}
+  - {name: Ras Laffan, aliases: [ras laffan, рас-лаффан, ראס לפאן], country: QA, lat: 25.9000, lon: 51.5500, theater: GULF, kind: oil}
+  - {name: Kuwait City, aliases: [kuwait city, эль-кувейт, כווית סיטי], country: KW, lat: 29.3759, lon: 47.9774, theater: GULF, kind: capital}
+  - {name: Manama, aliases: [manama, манама, מנאמה], country: BH, lat: 26.2285, lon: 50.5860, theater: GULF, kind: capital}
+  - {name: Muscat, aliases: [muscat, маскат, מוסקט], country: OM, lat: 23.5880, lon: 58.3829, theater: GULF, kind: capital}
+  - {name: Strait of Hormuz, aliases: [strait of hormuz, hormuz, ормузский пролив, ормуз, מיצר הורמוז], country: IR, lat: 26.57, lon: 56.25, theater: GULF, kind: strait}
+  - {name: Red Sea, aliases: [red sea, красное море, הים האדום], country: YE, lat: 20.0, lon: 38.0, theater: GULF, kind: sea}
+  - {name: Bab el-Mandeb, aliases: [bab el-mandeb, баб-эль-мандеб, באב אל-מנדב], country: YE, lat: 12.5833, lon: 43.3333, theater: GULF, kind: strait}
+
+  - {name: Taipei, aliases: [taipei, тайбэй, טאיפיי], country: TW, lat: 25.0330, lon: 121.5654, theater: NATURE, kind: capital}
+  - {name: Tokyo, aliases: [tokyo, токио, טוקיו], country: JP, lat: 35.6762, lon: 139.6503, theater: NATURE, kind: capital}
+  - {name: Beijing, aliases: [beijing, пекин, בייג'ינג], country: CN, lat: 39.9042, lon: 116.4074, theater: PANDEMIC, kind: capital}
+  - {name: Wuhan, aliases: [wuhan, ухань, ווהאן], country: CN, lat: 30.5928, lon: 114.3055, theater: PANDEMIC, kind: city}
+  - {name: Hong Kong, aliases: [hong kong, гонконг, הונג קונג], country: HK, lat: 22.3193, lon: 114.1694, theater: PANDEMIC, kind: city}
+  - {name: Kinshasa, aliases: [kinshasa, киншаса, קינשאסה], country: CD, lat: -4.4419, lon: 15.2663, theater: PANDEMIC, kind: capital}
+  - {name: Lagos, aliases: [lagos, лагос, לאגוס], country: NG, lat: 6.5244, lon: 3.3792, theater: PANDEMIC, kind: city}
+  - {name: Mumbai, aliases: [mumbai, мумбаи, מומבאי], country: IN, lat: 19.0760, lon: 72.8777, theater: PANDEMIC, kind: city}
+  - {name: Jakarta, aliases: [jakarta, джакарта, ג'קרטה], country: ID, lat: -6.2088, lon: 106.8456, theater: PANDEMIC, kind: capital}
+  - {name: Manila, aliases: [manila, манила, מנילה], country: PH, lat: 14.5995, lon: 120.9842, theater: PANDEMIC, kind: capital}
+
+volcanoes:
+  - {name: Campi Flegrei, aliases: [campi flegrei, кампи-флегрей, פלגרייאן], country: IT, lat: 40.8270, lon: 14.1390, high_consequence: true}
+  - {name: Vesuvio, aliases: [vesuvio, vesuvius, везувий, וזוב], country: IT, lat: 40.8214, lon: 14.4267, high_consequence: true}
+  - {name: Etna, aliases: [etna, этна, אתנה], country: IT, lat: 37.7510, lon: 14.9934, high_consequence: true}
+  - {name: Stromboli, aliases: [stromboli, стромболи, סטרומבולי], country: IT, lat: 38.7890, lon: 15.2130, high_consequence: true}
+  - {name: Katla, aliases: [katla, катла, קטלה], country: IS, lat: 63.6333, lon: -19.0500, high_consequence: true}
+  - {name: Bárðarbunga, aliases: [bardarbunga, bárðarbunga, бардарбунга], country: IS, lat: 64.6333, lon: -17.5167, high_consequence: true}
+  - {name: Öræfajökull, aliases: [oraefajokull, öræfajökull, эрафьёкюдль], country: IS, lat: 64.0000, lon: -16.6500, high_consequence: true}
+  - {name: Grímsvötn, aliases: [grimsvotn, grímsvötn, гримсвётн], country: IS, lat: 64.4167, lon: -17.3333, high_consequence: true}
+  - {name: Askja, aliases: [askja, аксья], country: IS, lat: 65.0333, lon: -16.7500, high_consequence: true}
+  - {name: Hekla, aliases: [hekla, гекла], country: IS, lat: 63.9833, lon: -19.7000, high_consequence: true}
+  - {name: Yellowstone, aliases: [yellowstone, йеллоустон, ילוסטון], country: US, lat: 44.4280, lon: -110.5885, high_consequence: true}
+  - {name: Rainier, aliases: [rainier, райнир], country: US, lat: 46.8523, lon: -121.7603, high_consequence: true}
+  - {name: Long Valley, aliases: [long valley, лонг-вэлли], country: US, lat: 37.7000, lon: -118.8700, high_consequence: true}
+  - {name: Taal, aliases: [taal, тааль], country: PH, lat: 14.0020, lon: 120.9930, high_consequence: true}
+  - {name: Mayon, aliases: [mayon, майон], country: PH, lat: 13.2570, lon: 123.6850, high_consequence: true}
+  - {name: Pinatubo, aliases: [pinatubo, пинатубо], country: PH, lat: 15.1300, lon: 120.3500, high_consequence: true}
+  - {name: Sakurajima, aliases: [sakurajima, сакурадзима, סאקוראג'ימה], country: JP, lat: 31.5850, lon: 130.6570, high_consequence: true}
+  - {name: Aso, aliases: [aso, асо], country: JP, lat: 32.8840, lon: 131.1040, high_consequence: true}
+  - {name: Fuji, aliases: [mount fuji, fuji, фудзи], country: JP, lat: 35.3606, lon: 138.7274, high_consequence: true}
+  - {name: Merapi, aliases: [merapi, мерапи], country: ID, lat: -7.5400, lon: 110.4460, high_consequence: true}
+  - {name: Agung, aliases: [agung, аgung, אגונג], country: ID, lat: -8.3430, lon: 115.5080, high_consequence: true}
+  - {name: Sinabung, aliases: [sinabung, синабунг], country: ID, lat: 3.1700, lon: 98.3920, high_consequence: true}
+  - {name: Kelud, aliases: [kelud, келуд], country: ID, lat: -7.9300, lon: 112.3080, high_consequence: true}
+  - {name: Popocatépetl, aliases: [popocatepetl, popocatépetl, попокатепетль], country: MX, lat: 19.0230, lon: -98.6220, high_consequence: true}
+  - {name: Cotopaxi, aliases: [cotopaxi, котопахи], country: EC, lat: -0.6800, lon: -78.4370, high_consequence: true}
+  - {name: Tungurahua, aliases: [tungurahua, тунгурауа], country: EC, lat: -1.4670, lon: -78.4420, high_consequence: true}
+  - {name: Villarrica, aliases: [villarrica, вильяррика], country: CL, lat: -39.4200, lon: -71.9300, high_consequence: true}
+  - {name: Nyiragongo, aliases: [nyiragongo, нирагонго], country: CD, lat: -1.5200, lon: 29.2500, high_consequence: true}
+  - {name: Santorini, aliases: [santorini, санторини], country: GR, lat: 36.4040, lon: 25.3960, high_consequence: true}
+  - {name: Taupo, aliases: [taupo, таупо], country: NZ, lat: -38.8200, lon: 175.9800, high_consequence: true}

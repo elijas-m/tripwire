@@ -1,0 +1,38 @@
+# Контроль ложных §15: «Пентагон предупреждает о риске…» не должен превышать WATCH.
+id: control-pentagon-warns
+name: "Контроль: предупреждения о риске"
+expect: WATCH
+control: true
+provenance: >-
+  Реконструкция типового сообщения DoD/Пентагона с формулировками «warns of risk»,
+  «could», «may»; класс публикаций, перечисленных в §15 как контрольные.
+events:
+  - at: "2024-11-20T18:00:00Z"
+    source: dod_rss
+    tier0: true
+    title: "Pentagon warns of risk of nuclear weapons use by Russia"
+    body: >-
+      A senior defense official warned that Moscow could resort to nuclear weapons use
+      if the situation deteriorates. Officials said there is no evidence of imminent
+      preparations and that the warning is a risk assessment, not an intelligence
+      finding.
+    category: eu_ru
+    theater: EU_RU
+    country: US
+    lat: 38.87
+    lon: -77.06
+    url: "https://www.war.gov/News/News-Stories/Article/Article/pentagon-warns-nuclear-risk/"
+    origin_domain: war.gov
+  - at: "2024-11-20T18:30:00Z"
+    source: ria_rss
+    title: "Пентагон предупреждает о риске применения ядерного оружия"
+    body: >-
+      Представитель Пентагона заявил, что Россия может применить ядерное оружие
+      при ухудшении ситуации. По его словам, признаков подготовки нет.
+    category: eu_ru
+    theater: EU_RU
+    country: RU
+    lat: 55.75
+    lon: 37.62
+    url: "https://ria.ru/20241120/pentagon-1900000000.html"
+    origin_domain: ria.ru

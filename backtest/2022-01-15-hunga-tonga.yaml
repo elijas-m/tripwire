@@ -1,0 +1,39 @@
+# 15.01.2022 — извержение Hunga Tonga и цунами. Ожидание §15: CRITICAL ≤ 30 мин.
+id: 2022-01-15-hunga-tonga
+name: "15.01.2022 — Hunga Tonga, цунами"
+expect: CRITICAL
+max_delay_min: 30
+provenance: >-
+  Бюллетень PTWC №1 от 15.01.2022 04:30 UTC — реконструкция по тексту
+  предупреждения (tsunami.gov); сводка GDACS — реконструкция по событию
+  вулканического извержения.
+events:
+  - at: "2022-01-15T04:30:00Z"
+    source: noaa_ptwc_atom
+    tier0: true
+    title: "Tsunami Warning issued for Tonga, Fiji, Samoa and American Samoa"
+    body: >-
+      TSUNAMI WARNING. A tsunami warning is in effect for the coasts of Tonga, Fiji,
+      Samoa, American Samoa and the Kermadec Islands following a volcanic eruption at
+      Hunga Tonga-Hunga Ha'apai. Sea level observations indicate a tsunami has been
+      generated. People near the coast should move to higher ground.
+    category: tsunami
+    theater: NATURE
+    country: TO
+    lat: -20.55
+    lon: -175.39
+    url: "https://www.tsunami.gov/events/PHEB/2022/01/15/1/WEPA40PHEB150430.txt"
+    origin_domain: tsunami.gov
+  - at: "2022-01-15T04:55:00Z"
+    source: gdacs_rss
+    title: "GDACS: volcanic eruption at Hunga Tonga-Hunga Ha'apai, tsunami threat"
+    body: >-
+      A major volcanic eruption occurred at Hunga Tonga-Hunga Ha'apai. The eruption
+      produced a tsunami affecting Tonga; ashfall was reported in Nuku'alofa.
+    category: disaster
+    theater: NATURE
+    country: TO
+    lat: -20.55
+    lon: -175.39
+    url: "https://www.gdacs.org/report.aspx?eventid=1000001"
+    origin_domain: gdacs.org

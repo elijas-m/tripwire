@@ -1,0 +1,72 @@
+# 07.10.2023 — атака ХАМАС. Ожидание §15: CRITICAL ≤ 15 мин (Oref + IDF).
+id: 2023-10-07-hamas
+name: "07.10.2023 — атака ХАМАС на Израиль"
+expect: CRITICAL
+max_delay_min: 15
+provenance: >-
+  Формулировки IDF/МВД — реконструкция по публикациям @idfonline и заявлениям
+  офиса премьер-министра 07.10.2023. Набор районов Oref соответствует реальной
+  географии тревог того утра (юг и центр).
+events:
+  - at: "2023-10-07T03:25:00Z"
+    source: idf_tg
+    tier0: true
+    title: "Hamas has launched a massive barrage of rockets at Israel; the IDF declares a state of war"
+    body: >-
+      Hamas has opened a war against the State of Israel. The IDF declares a state of
+      war. Residents of southern and central Israel are instructed to enter protected
+      spaces. The IDF is operating against the terrorist infrastructure of Hamas.
+    category: israel
+    theater: ISRAEL
+    country: IL
+    lat: 31.77
+    lon: 35.21
+    url: "https://t.me/s/idfonline/20231007"
+    origin_domain: t.me
+  - at: "2023-10-07T03:27:00Z"
+    source: tzeva_notifications
+    title: "התרעה: ירי רקטות וטילים — שדרות, אשקלון, אשדוד, תל אביב"
+    body: >-
+      Alert — rockets and missiles. Cities: Sderot, Ashkelon, Ashdod, Tel Aviv,
+      Be'er Sheva, Yavne, Rehovot, Rishon LeZion, Jerusalem, Netivot.
+    category: israel
+    theater: ISRAEL
+    country: IL
+    lat: 31.52
+    lon: 34.6
+    payload:
+      cities: [Sderot, Ashkelon, Ashdod, "Tel Aviv", "Be'er Sheva", Yavne, Rehovot, "Rishon LeZion", Jerusalem, Netivot]
+      districts: [Gaza Envelope, Ashkelon Coast, Lachish, Northern Negev, Central Negev, Shephelah, Tel Aviv, Dan, Jerusalem, Judea]
+      district_share: 0.333
+      threat: 1
+      is_drill: false
+    url: "https://www.tzevaadom.co.il/alert/20231007062700"
+    origin_domain: tzevaadom.co.il
+  - at: "2023-10-07T03:31:00Z"
+    source: israel_mfa_tg
+    title: "Israel is at war: Hamas launched a murderous surprise attack on Israeli communities"
+    body: >-
+      Hamas terrorists infiltrated Israeli communities and opened fire on civilians.
+      Israel is at war. The Security Cabinet has declared a state of war and approved
+      wide-scale mobilisation of reservists.
+    category: israel
+    theater: ISRAEL
+    country: IL
+    lat: 31.77
+    lon: 35.21
+    url: "https://t.me/s/IsraelMFA/20231007"
+    origin_domain: t.me
+  - at: "2023-10-07T03:45:00Z"
+    source: gnews_jpost
+    title: "Israel declares war as Hamas launches massive attack, hundreds killed"
+    body: >-
+      The Jerusalem Post reports that Hamas launched a massive surprise attack on
+      southern Israel, with rockets and ground infiltrations. The IDF declared a state
+      of war and called up reservists.
+    category: israel
+    theater: ISRAEL
+    country: IL
+    lat: 31.77
+    lon: 35.21
+    url: "https://news.google.com/rss/articles/hamas-attack-2023"
+    origin_domain: news.google.com

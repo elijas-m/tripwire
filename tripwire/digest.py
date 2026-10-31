@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 from . import diplo, ews, observability, radiation
 from .alerts import THEATER_LABELS
-from .indicators import market_summary
+from .indicators import market_summary, world_digest
 from .models import L1, L2, L3, LEVEL_NAMES
 from .telegram_api import esc
 from .util import UTC
@@ -109,6 +109,7 @@ async def build_digest(app, hours: int = 24) -> str:
     indicator_parts.extend(await ews.digest_parts(app.db))
     indicator_parts.extend(await radiation.digest_parts(app.db))
     indicator_parts.extend(await diplo.digest_parts(app.db))
+    indicator_parts.extend(await world_digest(app.db))
 
     lines = [f"📊 <b>ДАЙДЖЕСТ</b> · {stamp} · {hours} ч", ""]
     if theaters:

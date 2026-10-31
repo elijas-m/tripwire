@@ -453,7 +453,7 @@ sources:
   - id: state_travel_rss
     name: "US State Dept travel advisories"
     type: rss
-    parser: rss
+    parser: travel_advisory
     url: "https://travel.state.gov/_res/rss/TAsTWs.xml"
     tier: 0
     theater: EU_RU
@@ -472,6 +472,21 @@ sources:
     category: eu_ru
     interval_s: 1800
     max_age_hours: 72
+
+  - id: easa_czib
+    name: "EASA conflict zone bulletins"
+    type: html
+    parser: easa_czib
+    url: "https://www.easa.europa.eu/en/conflict-zone-status/active"
+    base_url: "https://www.easa.europa.eu"
+    link_pattern: '(?i)/domains/air-operations/czibs/'
+    tier: 0
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 3600
+    max_age_hours: 8
+    max_items: 40
+    adaptive: false
 
   - id: poland_mfa
     name: "Poland MFA"
@@ -626,6 +641,43 @@ sources:
     max_age_hours: 1
     adaptive: false
     lang: uk
+
+  # ---------------- Maritime and air indicators ----------------
+  - id: imf_portwatch
+    name: "IMF PortWatch chokepoints"
+    type: json
+    parser: portwatch_json
+    url: "https://hub.arcgis.com/api/v3/datasets/3da2b9ca97684916b75c4013f95d18ab/downloads/data?format=csv&spatialRefId=4326"
+    tier: 1
+    theater: GULF
+    category: gulf
+    interval_s: 21600
+    max_age_hours: 96
+    adaptive: false
+
+  - id: gpsjam
+    name: "gpsjam GPS interference"
+    type: json
+    parser: gpsjam_csv
+    url: "https://gpsjam.org/data/manifest.csv"
+    tier: 3
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 3600
+    max_age_hours: 72
+    adaptive: false
+
+  - id: opensky_airspace
+    name: "OpenSky airspace over Ukraine"
+    type: json
+    parser: opensky_json
+    url: "https://opensky-network.org/api/states/all?lamin=44.3&lomin=22.1&lamax=52.4&lomax=40.3"
+    tier: 3
+    theater: EU_RU
+    category: eu_ru
+    interval_s: 1800
+    max_age_hours: 1
+    adaptive: false
 
   - id: adsb_lol_mil
     name: "ADS-B military (adsb.lol)"

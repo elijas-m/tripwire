@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 from . import diplo, ews, observability, radiation
 from .alerts import THEATER_LABELS
 from .digest import build_digest, source_problems
-from .indicators import market_summary
+from .indicators import market_summary, world_status
 from .models import LEVEL_NAMES
 from .telegram_api import TelegramError, esc
 from .util import UTC, json_loads
@@ -104,6 +104,7 @@ async def format_status(app) -> str:
     lines.extend(await ews.status_lines(app.db))
     lines.extend(await radiation.status_lines(app.db))
     lines.extend(await diplo.status_lines(app.db))
+    lines.extend(await world_status(app.db))
     lines.append("")
     return "\n".join(lines)
 

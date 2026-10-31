@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .telegram_api import esc
 from .util import now_ts as clock_ts
 
 MARKET_SYMBOLS = {
@@ -144,3 +145,64 @@ async def compute_market_shock(
     ):
         await db.indicator_set("market_shock", value, payload)
     return payload
+
+
+async def world_digest(db: Any) -> list[str]:
+    """One-line states for maritime, GPS and airspace indicators."""
+    parts: list[str] = []
+    portwatch = await db.indicator_get("imf_portwatch")
+    if portwatch:
+        meta = portwatch.get("meta") or {}
+        text = f"Проливы {portwatch.get('value')}"
+        notable = meta.get("notable") or []
+        if notable:
+            text += f" ({', '.join(str(item) for item in notable[:2])})"
+        parts.append(text)
+    gps = await db.indicator_get("gpsjam")
+    if gps:
+        meta = gps.get("meta") or {}
+        text = f"GPS-помехи {gps.get('value')}"
+        if isinstance(meta.get("bad_hexes"), int):
+            text += f" ({meta['bad_hexes']})"
+        parts.append(text)
+    air = await db.indicator_get("opensky_airspace")
+    if air:
+        meta = air.get("meta") or {}
+        text = f"Небо UA {air.get('value')}"
+        if isinstance(meta.get("airborne_core"), int):
+            text += f" ({meta['airborne_core']})"
+        parts.append(text)
+    return parts
+
+
+async def world_status(db: Any) -> list[str]:
+    lines: list[str] = []
+    portwatch = await db.indicator_get("imf_portwatch")
+    if portwatch:
+        meta = portwatch.get("meta") or {}
+        line = f"🚢 Проливы: <b>{esc(str(portwatch.get('value') or '—'))}</b>"
+        if meta.get("as_of"):
+            line += f" · {esc(str(meta['as_of']))}"
+        notable = meta.get("notable") or []
+        if notable:
+            line += " · " + ", ".join(esc(str(item)) for item in notable[:3])
+        lines.append(line)
+    gps = await db.indicator_get("gpsjam")
+    if gps:
+        meta = gps.get("meta") or {}
+        line = f"📡 GPS-помехи: <b>{esc(str(gps.get('value') or '—'))}</b>"
+        if isinstance(meta.get("bad_hexes"), int):
+            line += f" · {meta['bad_hexes']} гексов"
+        if meta.get("date"):
+            line += f" · {esc(str(meta['date']))}"
+        lines.append(line)
+    air = await db.indicator_get("opensky_airspace")
+    if air:
+        meta = air.get("meta") or {}
+        line = f"✈️ Небо UA: <b>{esc(str(air.get('value') or '—'))}</b>"
+        if isinstance(meta.get("airborne_core"), int):
+            line += f" · {meta['airborne_core']} в зоне"
+        if isinstance(meta.get("airborne_region"), int):
+            line += f" · {meta['airborne_region']} в регионе"
+        lines.append(line)
+    return lines

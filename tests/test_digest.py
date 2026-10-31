@@ -60,10 +60,11 @@ class DigestTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("Индикаторы", text)
 
     async def test_digest_reports_observability(self) -> None:
-        for source in self.app.cfg.enabled_sources():
+        sources = list(self.app.cfg.enabled_sources())
+        for source in sources:
             await self.app.db.health_ok(source.id, 10.0, 1, None, None)
         text = await build_digest(self.app)
-        self.assertIn("60/60 · 100% · FULL", text)
+        self.assertIn(f"{len(sources)}/{len(sources)} · 100% · FULL", text)
         key = next(source for source in self.app.cfg.enabled_sources() if source.tier == 0)
         await self.app.db.health_error(key.id, "HTTP 503")
         degraded = await build_digest(self.app)

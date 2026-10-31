@@ -377,7 +377,8 @@ class AlertFormatTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("Не установлено:", text)
 
     async def test_alert_reports_observability(self) -> None:
-        for source in CFG.enabled_sources():
+        sources = list(CFG.enabled_sources())
+        for source in sources:
             await self.db.health_ok(source.id, 10.0, 1, None, None)
         hit = TripwireHit(id="TW-IL-IRAN-STRIKE", level=L3, why="Взаимные удары.",
                           one_liner="Удар Израиля по Ирану", confirmed=True,
@@ -385,7 +386,7 @@ class AlertFormatTests(unittest.IsolatedAsyncioTestCase):
         decision = SimpleNamespace(score=20.0, threshold=16.0, sources=2)
         text = await self.alerts._compose(
             L3, "ISRAEL", None, self._event(), decision, None, hit, 7)
-        self.assertIn("Наблюдаемость: 60/60 · 100% · FULL", text)
+        self.assertIn(f"Наблюдаемость: {len(sources)}/{len(sources)} · 100% · FULL", text)
         self.assertNotIn("наблюдение неполное", text)
 
     async def test_degraded_observability_is_stated(self) -> None:

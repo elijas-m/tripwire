@@ -242,6 +242,20 @@ class TripwireEngine:
         if _DEPARTURE_DENIAL.search(text):
             # "US denies reports of ordered departure" is the opposite signal.
             return None
+        departure = str(event.numeric_payload.get("departure") or "")
+        if not departure:
+            if re.search(r"authorized\s+departure", text, re.I):
+                departure = "authorized"
+            elif re.search(r"ordered\s+departure", text, re.I):
+                departure = "ordered"
+        event.numeric_payload["departure"] = departure
+        if departure == "authorized":
+            # Voluntary departure of family members is a warning, not the
+            # mandatory staff withdrawal that precedes an evacuation.
+            hit = self._hit(rule)
+            hit.level = min(hit.level, L2)
+            hit.why += " Разрешённый выезд добровольный и не равен приказу о выезде."
+            return hit
         capitals = rule.get("capitals") or []
         nt = norm_text(text)
         found = [c for c in capitals if c.lower() in nt]

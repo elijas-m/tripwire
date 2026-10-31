@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import csv
 import json
 import logging
 import re
+import statistics
 from datetime import datetime
 from typing import Any
 from urllib.parse import urljoin
@@ -15,7 +17,7 @@ from .models import RawItem, Source
 from .radiation import parse_safecast
 from .util import (
     UTC, canon_url, domain_of, join_url, json_loads, norm_text,
-    parse_dt, safe_float, safe_int, sha1, strip_html, truncate,
+    parse_dt, safe_float, safe_int, sha1, strip_html, truncate, utcnow,
 )
 
 
@@ -724,6 +726,221 @@ def parse_html_links(source: Source, text: str, cfg: Any = None) -> list[RawItem
     return out
 
 
+_CZIB_THEATERS: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("russian federation", "russia", "ukraine", "belarus", "moldova"), "EU_RU"),
+    (("israel", "lebanon", "syria", "jordan", "iran", "iraq", "palestin", "gaza"), "ISRAEL"),
+    (("saudi", "yemen", "persian gulf", "gulf of oman", "red sea", "qatar", "kuwait",
+      "bahrain", "oman", "emirates"), "GULF"),
+    (("turkey", "türkiye"), "MENA"),
+)
+_CZIB_CATEGORY = {"EU_RU": "eu_ru", "ISRAEL": "israel", "GULF": "gulf", "MENA": "mena"}
+
+
+def parse_easa_czib(source: Source, text: str, cfg: Any = None) -> list[RawItem]:
+    """Active EASA conflict-zone bulletins; a revision gets a new URL and event."""
+    out: list[RawItem] = []
+    for item in parse_html_links(source, text, cfg):
+        region = item.title
+        haystack = region.lower()
+        theater = next(
+            (name for words, name in _CZIB_THEATERS if any(word in haystack for word in words)),
+            source.theater,
+        )
+        czib = item.url.rstrip("/").rsplit("/", 1)[-1].upper()
+        short = czib[len("CZIB-"):] if czib.startswith("CZIB-") else czib
+        effective = item.published_at
+        item.theater = theater
+        item.category = _CZIB_CATEGORY.get(theater, source.category)
+        item.title = f"EASA CZIB {short}: {region}"
+        item.body = (
+            f"Active EASA conflict zone information bulletin for {region}"
+            + (f", effective {effective:%Y-%m-%d}." if effective else ".")
+        )
+        item.payload = {
+            "czib": czib,
+            "region": region,
+            "effective": effective.strftime("%Y-%m-%d") if effective else None,
+        }
+        # A bulletin is current knowledge: the page date is the bulletin's
+        # effective date, not the time we learned it is still active.
+        item.published_at = utcnow()
+        out.append(item)
+    return out
+
+
+_TRAVEL_LEVEL = re.compile(r"Level\s*([1-4])", re.I)
+_DEPARTURE_STATUS = re.compile(r"(?<![\w-])(Ordered|Authorized)\s+departure", re.I)
+
+
+def parse_travel_advisory(source: Source, text: str, cfg: Any = None) -> list[RawItem]:
+    """State Department advisories with the level and departure status made explicit."""
+    parsed = feedparser.parse(text)
+    out: list[RawItem] = []
+    for entry in parsed.entries:
+        url = entry.get("link") or entry.get("id") or ""
+        title = entry.get("title") or ""
+        body = _entry_body(entry)
+        if not title and not body:
+            continue
+        plain = strip_html(body)
+        level = _TRAVEL_LEVEL.search(title) or _TRAVEL_LEVEL.search(plain[:300])
+        # Status headings sit near the top of the advisory; a dated historical
+        # mention deeper in the text must not be read as the current status.
+        status = _DEPARTURE_STATUS.search(plain[:2500])
+        payload = {
+            "feed_id": entry.get("id"),
+            "advisory_level": int(level.group(1)) if level else None,
+            "departure": status.group(1).lower() if status else "",
+        }
+        out.append(_item(
+            source, title, body, url, _rss_time(entry), payload,
+            guid=entry.get("id") or url,
+            origin_domain=_entry_origin(entry, url, source),
+        ))
+    # Departure advisories are rare and operationally important, so they must
+    # not fall outside max_items just because the feed is alphabetical.
+    rank = {"ordered": 0, "authorized": 1}
+    out.sort(key=lambda item: rank.get(item.payload.get("departure"), 2))
+    return out[: source.max_items]
+
+
+def parse_portwatch(source: Source, text: str, cfg: Any = None) -> list[RawItem]:
+    """IMF PortWatch daily chokepoint transits; flags volume drops vs the prior week."""
+    by_name: dict[str, dict[str, int]] = {}
+    reader = csv.DictReader(text.lstrip("\ufeff").splitlines())
+    for row in reader:
+        name = (row.get("portname") or "").strip()
+        date = (row.get("date") or "").strip().replace("/", "-")
+        count = safe_int(row.get("n_total"))
+        if not name or not date or count is None:
+            continue
+        by_name.setdefault(name, {})[date] = count
+    if not by_name:
+        return []
+
+    latest_date = max(date for days in by_name.values() for date in days)
+    chokepoints: dict[str, dict[str, Any]] = {}
+    notable: list[str] = []
+    for name, days in by_name.items():
+        latest = days.get(latest_date)
+        if latest is None:
+            continue
+        prior = [days[date] for date in sorted(days) if date < latest_date][-7:]
+        baseline = statistics.median(prior) if prior else None
+        delta = round((latest - baseline) / baseline * 100.0, 1) if baseline else None
+        chokepoints[name] = {"n_total": latest, "baseline": baseline, "delta_pct": delta}
+        if baseline is not None and baseline >= 8 and latest <= baseline * 0.5:
+            notable.append(f"{name} {delta:+.0f}%")
+    if not chokepoints:
+        return []
+
+    state = "ANOMALY" if notable else "NORMAL"
+    payload = {
+        "state": state,
+        "as_of": latest_date,
+        "chokepoints": chokepoints,
+        "notable": notable,
+    }
+    body = ", ".join(notable) if notable else "transit volumes within the 7-day baseline"
+    return [_item(
+        source, f"IMF PortWatch: {len(chokepoints)} chokepoints · {latest_date}",
+        body, source.url, utcnow(), payload,
+        guid=f"portwatch-{latest_date}", kind="indicator",
+    )]
+
+
+def parse_gpsjam(source: Source, text: str, cfg: Any = None) -> list[RawItem]:
+    """Daily count of GPS interference hexes from the gpsjam manifest."""
+    rows: list[tuple[str, int, bool, str]] = []
+    for row in csv.DictReader(text.splitlines()):
+        date = (row.get("date") or "").strip()
+        try:
+            count = int(float(row.get("num_bad_aircraft_hexes") or ""))
+        except (TypeError, ValueError):
+            continue
+        if not date:
+            continue
+        rows.append((
+            date, count,
+            (row.get("suspect") or "").strip().lower() == "true",
+            (row.get("source") or "").strip(),
+        ))
+    if not rows:
+        return []
+    rows.sort(key=lambda item: item[0])
+    date, latest, suspect, origin = rows[-1]
+    prior = [count for _date, count, _s, _o in rows[-8:-1]]
+    baseline = statistics.median(prior) if prior else None
+    delta = round((latest / baseline - 1.0) * 100.0, 1) if baseline else None
+    try:
+        age_days = (utcnow().date() - datetime.strptime(date, "%Y-%m-%d").date()).days
+    except ValueError:
+        age_days = 0
+    if suspect or age_days > 4:
+        state = "UNKNOWN"
+    elif baseline is not None and latest >= max(300, baseline * 1.5):
+        state = "ELEVATED"
+    else:
+        state = "NORMAL"
+    payload = {
+        "state": state,
+        "date": date,
+        "bad_hexes": latest,
+        "baseline_7d": baseline,
+        "delta_pct": delta,
+        "suspect": suspect,
+        "origin": origin,
+    }
+    body = (
+        f"7-day baseline {baseline:.0f} ({delta:+.0f}%)" if baseline is not None
+        else "no baseline yet"
+    )
+    return [_item(
+        source, f"GPS interference: {latest} hexes · {date}", body,
+        source.url, utcnow(), payload, guid=f"gpsjam-{date}", kind="indicator",
+    )]
+
+
+UA_AIRBORNE_BBOX = (46.0, 30.0, 52.4, 40.3)
+
+
+def parse_opensky(source: Source, text: str, cfg: Any = None) -> list[RawItem]:
+    """Airborne aircraft over Ukraine; the airspace has been closed since 2022."""
+    data = json_loads(text, {})
+    states = data.get("states")
+    if not isinstance(states, list) or not states:
+        return []
+    airborne = core = 0
+    for state in states:
+        if not isinstance(state, list) or len(state) < 9 or state[8]:
+            continue
+        lat, lon = state[5], state[6]
+        if lat is None or lon is None:
+            continue
+        airborne += 1
+        south, west, north, east = UA_AIRBORNE_BBOX
+        if south <= lat <= north and west <= lon <= east:
+            core += 1
+    if core == 0:
+        value = "CLOSED"
+    elif core < 8:
+        value = "ACTIVITY"
+    else:
+        value = "REOPENING"
+    payload = {
+        "state": value,
+        "airborne_core": core,
+        "airborne_region": airborne,
+        "as_of": data.get("time"),
+        "zone": "UA",
+    }
+    return [_item(
+        source, f"Airspace Ukraine: {value} · {core} airborne", "", source.url,
+        utcnow(), payload, guid=f"opensky-{int(utcnow().timestamp() // 1800)}",
+        kind="indicator",
+    )]
+
+
 def parse_html_table(source: Source, text: str, cfg: Any = None) -> list[RawItem]:
     rows = re.findall(r"(?is)<tr[^>]*>(.*?)</tr>", text)
     out = []
@@ -1236,6 +1453,11 @@ PARSERS = {
     "telegram_html": parse_telegram,
     "ppi_telegram": parse_ppi,
     "ukmto_jina": parse_ukmto,
+    "easa_czib": parse_easa_czib,
+    "travel_advisory": parse_travel_advisory,
+    "portwatch_json": parse_portwatch,
+    "gpsjam_csv": parse_gpsjam,
+    "opensky_json": parse_opensky,
 }
 
 

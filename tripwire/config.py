@@ -19,6 +19,7 @@ KNOWN_PARSERS = {
     "frankfurter_json",
     "spa_next_data",
     "telegram_html", "ppi_telegram", "ukmto_jina", "oref_json",
+    "easa_czib", "travel_advisory", "portwatch_json", "gpsjam_csv", "opensky_json",
 }
 
 KNOWN_TYPES = {"rss", "json", "html", "ws", "telegram", "market", "safecast"}

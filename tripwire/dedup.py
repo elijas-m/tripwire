@@ -69,6 +69,16 @@ class Deduper:
     def _severity(event: Event) -> tuple[float, float]:
         """Comparable severity for revision detection: (metric, rank)."""
         p = event.numeric_payload
+        if "advisory_level" in p or "departure" in p:
+            # Travel advisories keep a stable GUID across updates, so a new
+            # departure order would otherwise be swallowed as a duplicate.
+            departure = {"ordered": 2, "authorized": 1}.get(
+                str(p.get("departure") or "").lower(), 0)
+            try:
+                level = int(p.get("advisory_level") or 0)
+            except (TypeError, ValueError):
+                level = 0
+            return 0.0, departure * 10 + level
         if event.category == "earthquake":
             return float(p.get("mag") or 0.0), {"red": 3, "orange": 2, "yellow": 1}.get(
                 str(p.get("alert") or "").lower(), 0)

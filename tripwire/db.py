@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS events (
     matched_rules TEXT,
     origin_domain TEXT,
     status TEXT DEFAULT 'new',
-    kind TEXT DEFAULT 'event'
+    kind TEXT DEFAULT 'event',
+    recorded_at INTEGER
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_events_url ON events(url) WHERE url IS NOT NULL AND url <> '';
 CREATE INDEX IF NOT EXISTS idx_events_ingested ON events(ingested_at);
@@ -47,6 +48,18 @@ CREATE INDEX IF NOT EXISTS idx_events_cluster ON events(cluster_id);
 CREATE INDEX IF NOT EXISTS idx_events_source ON events(source_id, ingested_at);
 CREATE INDEX IF NOT EXISTS idx_events_theater ON events(theater, ingested_at);
 CREATE INDEX IF NOT EXISTS idx_events_guid ON events(guid_hash);
+
+-- Append-only history: every version of an event row with the transaction time
+-- (recorded_at) at which the system held it. Valid time is published_at,
+-- knowledge time is ingested_at, transaction time is recorded_at here.
+CREATE TABLE IF NOT EXISTS event_revisions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER NOT NULL,
+    recorded_at INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    snapshot TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_event_revisions_event ON event_revisions(event_id, recorded_at);
 
 CREATE TABLE IF NOT EXISTS clusters (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -99,7 +112,8 @@ CREATE TABLE IF NOT EXISTS alerts (
     explain TEXT,
     tripwire_id TEXT,
     ack_at INTEGER,
-    status TEXT DEFAULT 'sent'
+    status TEXT DEFAULT 'sent',
+    decided_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_alerts_cluster ON alerts(cluster_id, sent_at);
 CREATE INDEX IF NOT EXISTS idx_alerts_tripwire ON alerts(tripwire_id, sent_at);
@@ -217,6 +231,45 @@ class DB:
             await self.conn.execute(
                 "ALTER TABLE source_health ADD COLUMN first_error_at INTEGER"
             )
+        await self._add_column("events", "recorded_at", "INTEGER")
+        await self._add_column("alerts", "decided_at", "INTEGER")
+        await self.conn.execute(
+            "UPDATE events SET recorded_at=ingested_at WHERE recorded_at IS NULL"
+        )
+        await self.conn.execute(
+            "UPDATE alerts SET decided_at=sent_at WHERE decided_at IS NULL"
+        )
+        # One baseline revision for rows that predate the history table: their
+        # pre-migration state is only known as of the migration moment.
+        cur = await self.conn.execute("SELECT COUNT(*) FROM event_revisions")
+        seeded = (await cur.fetchone())[0]
+        await cur.close()
+        if not seeded:
+            await self.conn.execute(
+                """INSERT INTO event_revisions (event_id, recorded_at, reason, snapshot)
+                   SELECT id, COALESCE(recorded_at, ingested_at), 'migrated',
+                          json_object(
+                            'id', id, 'source_id', source_id, 'tier', tier,
+                            'url', url, 'guid_hash', guid_hash, 'title', title,
+                            'body_excerpt', body_excerpt, 'lang', lang,
+                            'published_at', published_at, 'ingested_at', ingested_at,
+                            'recorded_at', COALESCE(recorded_at, ingested_at),
+                            'category', category, 'theater', theater, 'country', country,
+                            'lat', lat, 'lon', lon, 'numeric_payload', numeric_payload,
+                            'simhash', simhash, 'cluster_id', cluster_id, 'score', score,
+                            'level', level, 'matched_rules', matched_rules,
+                            'origin_domain', origin_domain, 'status', status, 'kind', kind)
+                   FROM events
+                   WHERE id NOT IN (SELECT event_id FROM event_revisions)"""
+            )
+
+    async def _add_column(self, table: str, column: str, kind: str) -> None:
+        assert self.conn is not None
+        cur = await self.conn.execute(f"PRAGMA table_info({table})")
+        columns = {row[1] for row in await cur.fetchall()}
+        await cur.close()
+        if column not in columns:
+            await self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
 
     async def close(self) -> None:
         if self.conn is not None:
@@ -255,6 +308,8 @@ class DB:
     async def insert_event(self, event: Event) -> int | None:
         if event.ingested_at is None:
             event.ingested_at = utcnow()
+        if event.recorded_at is None:
+            event.recorded_at = utcnow()
         row = event.row()
         cols = ", ".join(row.keys())
         placeholders = ", ".join("?" for _ in row)
@@ -264,10 +319,23 @@ class DB:
         if cur.rowcount == 0:
             return None
         event.id = cur.lastrowid
+        await self._record_event_revision(event.id, "inserted")
         return event.id
+
+    async def _record_event_revision(self, event_id: int, reason: str) -> None:
+        row = await self.fetchone("SELECT * FROM events WHERE id=?", (event_id,))
+        if row is None:
+            return
+        snapshot = {key: row[key] for key in row.keys()}
+        await self.execute(
+            """INSERT INTO event_revisions (event_id, recorded_at, reason, snapshot)
+               VALUES (?, ?, ?, ?)""",
+            (event_id, now_ts(), reason, json_dumps(snapshot)),
+        )
 
     async def update_event_cluster(self, event_id: int, cluster_id: int) -> None:
         await self.execute("UPDATE events SET cluster_id=? WHERE id=?", (cluster_id, event_id))
+        await self._record_event_revision(event_id, "clustered")
 
     async def update_event_scoring(
         self, event_id: int, score: float, level: int, rules: list[str], status: str = "scored"
@@ -276,11 +344,13 @@ class DB:
             "UPDATE events SET score=?, level=?, matched_rules=?, status=? WHERE id=?",
             (round(score, 3), level, json_dumps(rules), status, event_id),
         )
+        await self._record_event_revision(event_id, status)
 
     async def update_event_payload(self, event_id: int, payload: dict[str, Any]) -> None:
         await self.execute(
             "UPDATE events SET numeric_payload=? WHERE id=?", (json_dumps(payload), event_id)
         )
+        await self._record_event_revision(event_id, "payload")
 
     async def update_event_revision(self, event_id: int, event: "Event") -> None:
         await self.execute(
@@ -292,6 +362,50 @@ class DB:
                 to_ts(event.published_at), event_id,
             ),
         )
+        await self._record_event_revision(event_id, "revised")
+
+    async def event_as_of(self, event_id: int, as_of: int) -> "Event | None":
+        """The version of an event the system held at transaction time `as_of`."""
+        row = await self.fetchone(
+            """SELECT snapshot FROM event_revisions
+               WHERE event_id=? AND recorded_at<=?
+               ORDER BY recorded_at DESC, id DESC LIMIT 1""",
+            (event_id, as_of),
+        )
+        return Event.from_row(json_loads(row["snapshot"])) if row else None
+
+    async def events_as_of(self, as_of: int, since_ts: int = 0) -> list["Event"]:
+        """Latest version of every event known at `as_of` with ingested_at >= since_ts."""
+        rows = await self.fetchall(
+            """SELECT snapshot FROM (
+                   SELECT snapshot,
+                          ROW_NUMBER() OVER (
+                              PARTITION BY event_id ORDER BY recorded_at DESC, id DESC
+                          ) AS rn,
+                          json_extract(snapshot, '$.ingested_at') AS ingested
+                   FROM event_revisions
+                   WHERE recorded_at<=?
+               )
+               WHERE rn=1 AND ingested>=?
+               ORDER BY ingested DESC""",
+            (as_of, since_ts),
+        )
+        return [Event.from_row(json_loads(row["snapshot"])) for row in rows]
+
+    async def revision_history(self, event_id: int) -> list[dict[str, Any]]:
+        rows = await self.fetchall(
+            """SELECT recorded_at, reason, snapshot FROM event_revisions
+               WHERE event_id=? ORDER BY recorded_at, id""",
+            (event_id,),
+        )
+        return [
+            {
+                "recorded_at": from_ts(row["recorded_at"]),
+                "reason": row["reason"],
+                "event": Event.from_row(json_loads(row["snapshot"])),
+            }
+            for row in rows
+        ]
 
     async def event_by_guid_hash(self, guid_hash: str) -> "Event | None":
         row = await self.fetchone("SELECT * FROM events WHERE guid_hash=?", (guid_hash,))
@@ -486,11 +600,15 @@ class DB:
     async def insert_alert(
         self, cluster_id: int | None, level: int, tg_message_id: int | None,
         explain: dict[str, Any], tripwire_id: str | None = None, status: str = "sent",
+        decided_at: int | None = None,
     ) -> int:
+        now = now_ts()
         cur = await self.execute(
-            """INSERT INTO alerts (cluster_id, level, sent_at, tg_message_id, explain, tripwire_id, status)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (cluster_id, level, now_ts(), tg_message_id, json_dumps(explain), tripwire_id, status),
+            """INSERT INTO alerts
+               (cluster_id, level, sent_at, tg_message_id, explain, tripwire_id, status, decided_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (cluster_id, level, now, tg_message_id, json_dumps(explain), tripwire_id,
+             status, decided_at or now),
         )
         return cur.lastrowid
 
@@ -791,6 +909,9 @@ class DB:
     ) -> None:
         now = now_ts()
         await self.execute("DELETE FROM events WHERE ingested_at < ?", (now - event_days * 86400,))
+        await self.execute(
+            "DELETE FROM event_revisions WHERE event_id NOT IN (SELECT id FROM events)"
+        )
         await self.execute("DELETE FROM seen WHERE seen_at < ?", (now - seen_days * 86400,))
         await self.execute(
             "DELETE FROM translations WHERE created_at < ?", (now - translation_days * 86400,)

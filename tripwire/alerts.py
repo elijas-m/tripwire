@@ -666,7 +666,9 @@ class AlertManager:
                 events.append({
                     "id": ev.id, "source_id": ev.source_id, "tier": ev.tier,
                     "title": ev.title, "url": ev.url, "score": round(ev.score, 2),
-                    "level": ev.level, "published_at": ev.published_at.isoformat() if ev.published_at else None,
+                    "level": ev.level,
+                    "published_at": ev.published_at.isoformat() if ev.published_at else None,
+                    "ingested_at": ev.ingested_at.isoformat() if ev.ingested_at else None,
                 })
             sources = await self.db.cluster_sources(cluster.id)
         else:
@@ -674,6 +676,8 @@ class AlertManager:
                 "id": event.id, "source_id": event.source_id, "tier": event.tier,
                 "title": event.title, "url": event.url, "score": round(event.score, 2),
                 "level": event.level,
+                "published_at": event.published_at.isoformat() if event.published_at else None,
+                "ingested_at": event.ingested_at.isoformat() if event.ingested_at else None,
             })
             sources = [event.source_id]
 

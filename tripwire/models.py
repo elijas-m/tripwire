@@ -118,6 +118,7 @@ class Event:
     origin_domain: str = ""
     status: str = "new"
     kind: str = "event"
+    recorded_at: datetime | None = None
 
     def row(self) -> dict[str, Any]:
         return {
@@ -130,6 +131,7 @@ class Event:
             "lang": self.lang,
             "published_at": to_ts(self.published_at),
             "ingested_at": to_ts(self.ingested_at),
+            "recorded_at": to_ts(self.recorded_at),
             "category": self.category,
             "theater": self.theater,
             "country": self.country,
@@ -148,6 +150,7 @@ class Event:
 
     @classmethod
     def from_row(cls, row: Any) -> "Event":
+        keys = row.keys() if hasattr(row, "keys") else row
         return cls(
             id=row["id"],
             source_id=row["source_id"],
@@ -159,6 +162,7 @@ class Event:
             lang=row["lang"] or "en",
             published_at=from_ts(row["published_at"]),
             ingested_at=from_ts(row["ingested_at"]),
+            recorded_at=from_ts(row["recorded_at"]) if "recorded_at" in keys else None,
             category=row["category"] or "",
             theater=row["theater"] or "",
             country=row["country"],

@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from . import diplo, ews, radiation
+from . import diplo, ews, observability, radiation
 from .alerts import THEATER_LABELS
 from .indicators import market_summary
 from .models import L1, L2, L3, LEVEL_NAMES
@@ -77,7 +77,13 @@ async def build_digest(app, hours: int = 24) -> str:
     ]
 
     problems = await source_problems(app)
-    health_parts = [f"{len(app.sources)} источников"]
+    coverage = await observability.assess(app.cfg, app.db)
+    if coverage.state == observability.STATE_UNKNOWN:
+        health_parts = [f"{len(app.sources)} источников · нет данных"]
+    else:
+        health_parts = [coverage.summary]
+    if coverage.down:
+        health_parts.append(f"нет данных: {esc(observability.down_labels(app.cfg, coverage))}")
     if problems["failed"]:
         names = ", ".join(
             f"{item['name']} ({item['failures']}×)" for item in problems["failed"][:5]
@@ -88,8 +94,6 @@ async def build_digest(app, hours: int = 24) -> str:
             f"{item['name']} ({item['hours']} ч)" for item in problems["silent"][:5]
         )
         health_parts.append(f"молчат: {esc(names)}")
-    if len(health_parts) == 1:
-        health_parts.append("все отвечают")
 
     ppi = await app.db.indicator_get("ppi")
     shock = await app.db.indicator_get("market_shock")

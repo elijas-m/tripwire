@@ -45,6 +45,18 @@ alerts:
   suppress_warning_theaters: [NATURE]
   # CRITICAL for these theaters is delivered once, without "no /ack" reminders.
   suppress_repeats_theaters: [NATURE]
+  # BLUF: the first thing a reader needs is what to do at this level.
+  guidance:
+    WARNING: "Не планируйте поездки; гибкие билеты, наличные, документы."
+    CRITICAL: "Рассмотрите выезд в ближайшие 48 ч, пока сообщение открыто; укрытие."
+    overrides:
+      NATURE:
+        CRITICAL: "Следуйте указаниям местных служб."
+      PANDEMIC:
+        CRITICAL: "Следуйте рекомендациям органов здравоохранения."
+      MARKETS:
+        CRITICAL: "Проверьте позиции и ликвидность."
+  disclaimer: "Это не распоряжение органов гражданской обороны. При расхождении следуйте официальным указаниям."
 
 digest:
   # Individual events below this score are omitted from the digest lists.

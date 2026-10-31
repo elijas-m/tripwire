@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from . import diplo, ews, radiation
+from . import diplo, ews, observability, radiation
 from .alerts import THEATER_LABELS
 from .digest import build_digest, source_problems
 from .indicators import market_summary
@@ -111,7 +111,6 @@ async def format_status(app) -> str:
 async def format_status_full(app) -> str:
     text = await format_status(app)
     problems = await source_problems(app)
-    enabled = len(app.sources)
     failing = len(problems["failed"])
     silent = len(problems["silent"])
     open_clusters = await app.db.open_cluster_count()
@@ -120,11 +119,14 @@ async def format_status_full(app) -> str:
         "SELECT COUNT(*) AS n FROM events WHERE ingested_at>=?", (hour_ago,)
     )
     translator = getattr(app.alerts, "translator", None)
+    coverage = await observability.assess(app.cfg, app.db)
     lines = [
         text,
-        f"Источники: {enabled - failing}/{enabled} ок · сбои {failing} · молчат {silent}",
+        f"Наблюдаемость: {coverage.summary} · сбои {failing} · молчат {silent}",
         f"Кластеры открыты: {open_clusters} · событий за час: {int(recent['n']) if recent else 0}",
     ]
+    if coverage.down:
+        lines.append(f"Нет данных: {esc(observability.down_labels(app.cfg, coverage))}")
     if translator is not None:
         lines.append(await translator.status_line())
     for item in problems["failed"][:5]:

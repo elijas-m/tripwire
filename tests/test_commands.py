@@ -109,7 +109,7 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
     async def test_status_renderer(self) -> None:
         text = await format_status_full(self.app)
         self.assertIn("STATUS", text)
-        self.assertIn("Источники:", text)
+        self.assertIn("Наблюдаемость:", text)
 
     async def test_dispatch_threshold_mute_and_ack(self) -> None:
         service = CommandService(self.app)

@@ -41,6 +41,16 @@ hysteresis:
   hours: 6
   pandemic_hours: 24
 
+observability:
+  # Source is healthy when it has no failures and last_ok is within
+  # window_factor x its poll interval (at least min_window_s).
+  full_ratio: 0.9
+  degraded_ratio: 0.7
+  window_factor: 2.0
+  min_window_s: 900
+  # Empty list means every tier-0 source is treated as key.
+  key_sources: []
+
 cooldowns:
   critical_minutes: 60
   warning_minutes: 15

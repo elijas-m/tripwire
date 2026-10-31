@@ -210,6 +210,9 @@ class TripwireHit:
     theater: str | None = None
     confirmed: bool = True
     confirm_reason: str = ""
+    horizon: str = ""
+    refute: str = ""
+    next_tripwire: str = ""
 
 
 @dataclass(slots=True)

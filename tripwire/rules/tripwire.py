@@ -160,6 +160,9 @@ class TripwireEngine:
             why=rule.get("why", ""),
             one_liner=rule.get("one_liner", rule["id"]),
             payload=payload,
+            horizon=str(rule.get("horizon") or ""),
+            refute=str(rule.get("refute") or ""),
+            next_tripwire=str(rule.get("next_tripwire") or ""),
         )
 
     def _source_ok(self, rule: dict[str, Any], event: Event) -> bool:

@@ -7,6 +7,7 @@ import html
 import logging
 from typing import Any
 
+from . import observability
 from .models import L0, L1, L2, L3, LEVEL_NAMES, Cluster, Event, ScoreResult, TripwireHit
 from .telegram_api import TelegramClient, TelegramError, esc
 from .translate import Translator
@@ -38,6 +39,9 @@ CATEGORY_WHY = {
 LEVEL_ICONS = {L2: "🟠", L3: "🔴"}
 MAX_SOURCES = 6
 VOLCANO_COLOUR_RANK = {"green": 0, "yellow": 1, "orange": 2, "red": 3}
+HORIZON_LABELS = {"tactical": "ТАКТИЧЕСКИЙ", "structural": "СТРАТЕГИЧЕСКИЙ"}
+REFUTE_CORRELATION = "счёт театра ниже порога WATCH и удержание 6 ч."
+REFUTE_DEFAULT = "официальное опровержение или отсутствие подтверждения в течение 24 ч."
 
 
 def _event_ts(event: Event) -> int:
@@ -335,7 +339,14 @@ class AlertManager:
         icon = LEVEL_ICONS.get(level, "🟠")
         label = THEATER_LABELS.get(theater, theater)
         stamp = utcnow().strftime("%d.%m.%Y %H:%M UTC")
-        header = f"{icon} <b>{LEVEL_NAMES.get(level, 'WARNING')}</b> · ТЕАТР: {esc(label)} · {stamp}"
+        horizon = HORIZON_LABELS.get(
+            (tripwire.horizon if tripwire else "").strip().lower(),
+            HORIZON_LABELS["tactical"],
+        )
+        header = (
+            f"{icon} <b>{LEVEL_NAMES.get(level, 'WARNING')}</b> · ТЕАТР: {esc(label)}"
+            f" · {horizon} · {stamp}"
+        )
         if self.test_mode:
             header = f"🧪 <b>SELFTEST</b> · {header}"
 
@@ -344,11 +355,18 @@ class AlertManager:
         if realert:
             one_liner = "Обновление: " + one_liner
         why = self._why(event, tripwire, score_result)
+        guidance = self._guidance(level, theater)
+        refute = self._refute(tripwire)
+        disclaimer = str(self.alerts_cfg.get("disclaimer") or "").strip()
+        next_tripwire = (tripwire.next_tripwire if tripwire else "").strip()
 
         sources, total_sources = await self._source_lines(cluster, event)
         score = float(getattr(decision, "score", 0.0) or 0.0)
         threshold = float(getattr(decision, "threshold", 0.0) or 0.0)
         confidence = self._confidence(decision, tripwire, total_sources)
+        coverage = await observability.assess(self.cfg, self.db)
+        if coverage.state in (observability.STATE_DEGRADED, observability.STATE_BLIND):
+            confidence = f"{confidence}, наблюдение неполное"
         trigger = (tripwire.id if tripwire else "") or ", ".join(event.matched_rules or []) or "корреляция"
         accompanying = await self._accompanying()
         others = await self._other_theaters(theater)
@@ -358,7 +376,20 @@ class AlertManager:
             "",
             esc(one_liner[:240]),
             "",
+        ]
+        if guidance:
+            lines.append(f"Что делать: {esc(guidance)}")
+        if disclaimer:
+            lines.append(f"<i>{esc(disclaimer)}</i>")
+        if guidance or disclaimer:
+            lines.append("")
+        lines.append(f"Что опровергнет: {esc(refute)}")
+        if next_tripwire:
+            lines.append(f"Следующий tripwire: {esc(next_tripwire)}")
+        lines += [
+            "",
             f"Уровень: <b>{LEVEL_NAMES.get(level, 'WARNING')}</b> · счёт {score:.1f} (порог {threshold:.0f}) · подтверждение: {esc(confidence)} · оценка не откалибрована",
+            f"Наблюдаемость: {coverage.summary}",
             "",
             f"Важно: {esc(why)}",
         ]
@@ -381,6 +412,9 @@ class AlertManager:
             unknowns.append("независимое подтверждение (сейчас один источник)")
         if level >= L2 and total_sources < 2:
             unknowns.append("второй независимый источник")
+        if coverage.state in (observability.STATE_DEGRADED, observability.STATE_BLIND):
+            detail = observability.down_labels(self.cfg, coverage)
+            unknowns.append("полнота наблюдения" + (f" ({detail})" if detail else ""))
         if unknowns:
             lines += ["", "Не установлено:", *[f"• {esc(item)}" for item in unknowns]]
         lines += [
@@ -395,6 +429,20 @@ class AlertManager:
             f"/why {alert_id or trigger}   /ack   /mute {theater} 2",
         ]
         return "\n".join(lines)[:4096]
+
+    def _guidance(self, level: int, theater: str) -> str:
+        block = self.alerts_cfg.get("guidance") or {}
+        name = LEVEL_NAMES.get(level, "WARNING")
+        overrides = block.get("overrides") or {}
+        theater_block = overrides.get(theater) or overrides.get(str(theater).upper()) or {}
+        text = theater_block.get(name) or block.get(name) or ""
+        return str(text).strip()
+
+    @staticmethod
+    def _refute(tripwire: TripwireHit | None) -> str:
+        if tripwire is not None:
+            return tripwire.refute.strip() or REFUTE_DEFAULT
+        return REFUTE_CORRELATION
 
     @staticmethod
     def _confidence(decision, tripwire: TripwireHit | None, total_sources: int) -> str:

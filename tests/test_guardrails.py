@@ -110,6 +110,9 @@ class TripwireConfirmationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(hit.level, L3)
         self.assertTrue(hit.confirmed)
         self.assertIn("официальный источник", hit.confirm_reason)
+        self.assertEqual(hit.horizon, "tactical")
+        self.assertIn("Прекращение взаимных ударов", hit.refute)
+        self.assertIn("МАГАТЭ", hit.next_tripwire)
 
     async def _cluster_with(self, *peers: tuple[int, str]) -> int:
         cluster = Cluster(theater="ISRAEL", category="israel", title_canonical="test",
@@ -373,6 +376,34 @@ class AlertFormatTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Триггер: TW-IL-IRAN-STRIKE", text)
         self.assertNotIn("Не установлено:", text)
 
+    async def test_alert_reports_observability(self) -> None:
+        for source in CFG.enabled_sources():
+            await self.db.health_ok(source.id, 10.0, 1, None, None)
+        hit = TripwireHit(id="TW-IL-IRAN-STRIKE", level=L3, why="Взаимные удары.",
+                          one_liner="Удар Израиля по Ирану", confirmed=True,
+                          confirm_reason="официальный источник (tier 0)")
+        decision = SimpleNamespace(score=20.0, threshold=16.0, sources=2)
+        text = await self.alerts._compose(
+            L3, "ISRAEL", None, self._event(), decision, None, hit, 7)
+        self.assertIn("Наблюдаемость: 60/60 · 100% · FULL", text)
+        self.assertNotIn("наблюдение неполное", text)
+
+    async def test_degraded_observability_is_stated(self) -> None:
+        key = next(source for source in CFG.enabled_sources() if source.tier == 0)
+        for source in CFG.enabled_sources():
+            if source.id != key.id:
+                await self.db.health_ok(source.id, 10.0, 1, None, None)
+        hit = TripwireHit(id="TW-IL-IRAN-STRIKE", level=L3, why="Взаимные удары.",
+                          one_liner="Удар Израиля по Ирану", confirmed=True,
+                          confirm_reason="официальный источник (tier 0)")
+        decision = SimpleNamespace(score=20.0, threshold=16.0, sources=2)
+        text = await self.alerts._compose(
+            L3, "ISRAEL", None, self._event(), decision, None, hit, 7)
+        self.assertIn("DEGRADED", text)
+        self.assertIn("наблюдение неполное", text)
+        self.assertIn("полнота наблюдения", text)
+        self.assertIn(key.name, text)
+
     async def test_unconfirmed_alert_states_unknowns(self) -> None:
         hit = TripwireHit(id="TW-IL-IRAN-STRIKE", level=L2, why="Взаимные удары.",
                           one_liner="Удар Израиля по Ирану", confirmed=False,
@@ -384,6 +415,63 @@ class AlertFormatTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Не подтверждено независимо.", text)
         self.assertIn("Не установлено:", text)
         self.assertIn("независимое подтверждение", text)
+
+    async def test_bluf_blocks_and_guidance(self) -> None:
+        hit = TripwireHit(
+            id="TW-IL-IRAN-STRIKE", level=L3, why="Взаимные удары.",
+            one_liner="Удар Израиля по Ирану", confirmed=True,
+            confirm_reason="официальный источник (tier 0)",
+            horizon="tactical",
+            refute="Прекращение взаимных ударов и прекращение огня.",
+            next_tripwire="Высылка инспекторов МАГАТЭ.",
+        )
+        decision = SimpleNamespace(score=20.0, threshold=16.0, sources=2)
+        text = await self.alerts._compose(
+            L3, "ISRAEL", None, self._event(), decision, None, hit, 7)
+        self.assertIn("· ТАКТИЧЕСКИЙ ·", text)
+        self.assertIn("Что делать: Рассмотрите выезд в ближайшие 48 ч", text)
+        self.assertIn("Это не распоряжение органов гражданской обороны", text)
+        self.assertIn("Что опровергнет: Прекращение взаимных ударов", text)
+        self.assertIn("Следующий tripwire: Высылка инспекторов МАГАТЭ.", text)
+        self.assertLessEqual(len(text), 4096)
+
+    async def test_bluf_theater_override(self) -> None:
+        hit = TripwireHit(
+            id="TW-NAT-TSUNAMI-WARNING", level=L3, why="Цунами.",
+            one_liner="Предупреждение о цунами", confirmed=True,
+            confirm_reason="официальное локальное оповещение",
+        )
+        decision = SimpleNamespace(score=16.0, threshold=16.0, sources=1)
+        ev = self._event()
+        ev.theater = "NATURE"
+        text = await self.alerts._compose(
+            L3, "NATURE", None, ev, decision, None, hit, 9)
+        self.assertIn("Что делать: Следуйте указаниям местных служб.", text)
+
+    async def test_bluf_structural_horizon(self) -> None:
+        hit = TripwireHit(
+            id="TW-PAN-PHEIC", level=L3, why="ЧС ВОЗ.",
+            one_liner="ВОЗ объявила PHEIC", confirmed=True,
+            confirm_reason="официальный источник (tier 0)", horizon="structural",
+        )
+        decision = SimpleNamespace(score=16.0, threshold=16.0, sources=1)
+        ev = self._event()
+        ev.theater = "PANDEMIC"
+        text = await self.alerts._compose(
+            L3, "PANDEMIC", None, ev, decision, None, hit, 10)
+        self.assertIn("· СТРАТЕГИЧЕСКИЙ ·", text)
+        self.assertNotIn("ТАКТИЧЕСКИЙ", text)
+        self.assertIn("Следуйте рекомендациям органов здравоохранения", text)
+
+    async def test_correlation_refute_has_no_next_tripwire(self) -> None:
+        decision = SimpleNamespace(score=9.0, threshold=8.0, sources=2)
+        text = await self.alerts._compose(
+            L2, "ISRAEL", None, self._event(), decision, None, None, 11)
+        self.assertIn("Что делать: Не планируйте поездки", text)
+        self.assertIn(
+            "Что опровергнет: счёт театра ниже порога WATCH и удержание 6 ч.", text)
+        self.assertNotIn("Следующий tripwire:", text)
+        self.assertIn("· ТАКТИЧЕСКИЙ ·", text)
 
 
 if __name__ == "__main__":

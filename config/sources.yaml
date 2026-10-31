@@ -439,20 +439,6 @@ sources:
     max_items: 30
     lang: ru
 
-  # TEMP: test source, added 2026-10-28 on request. Remove after the trial.
-  - id: aftershock_rss
-    name: "AfterShock"
-    type: rss
-    parser: rss
-    url: "https://aftershock.news/?q=rss/aftershock.xml"
-    tier: 3
-    theater: EU_RU
-    category: eu_ru
-    interval_s: 1800
-    max_age_hours: 48
-    max_items: 20
-    lang: ru
-
   - id: dod_rss
     name: "US DoD releases"
     type: rss

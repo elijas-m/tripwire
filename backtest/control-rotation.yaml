@@ -1,0 +1,44 @@
+# Контроль ложных §15: плановая ротация войск НАТО не должна превышать WATCH.
+id: control-rotation
+name: "Контроль: плановая ротация войск НАТО"
+expect: WATCH
+control: true
+observation_min: 20160
+provenance: >-
+  Реконструкция типовых сообщений DoD, NATO и МИД Польши о плановой ротации
+  контингента в рамках Operation Atlantic Resolve и eFP (май 2024).
+events:
+  - at: "2024-05-06T08:00:00Z"
+    source: dod_rss
+    tier0: true
+    title: "DoD: 3rd Infantry Division begins a routine rotation to Poland"
+    body: >-
+      The deployment is a scheduled, pre-planned rotation under Operation Atlantic
+      Resolve. Units replace the outgoing brigade and will conduct joint training
+      with Polish forces. No change in force posture is announced.
+    theater: EU_RU
+    country: PL
+    url: "https://www.defense.gov/releases/rotation-poland/"
+    origin_domain: defense.gov
+  - at: "2024-05-06T10:00:00Z"
+    source: nato_news
+    tier0: true
+    title: "NATO: enhanced Forward Presence battle group completes routine rotation in Lithuania"
+    body: >-
+      The multinational battle group in Lithuania has completed its scheduled
+      rotation. The incoming contingent continues the same training programme.
+    theater: EU_RU
+    country: LT
+    url: "https://www.nato.int/cps/en/natohq/news_rotation.htm"
+    origin_domain: nato.int
+  - at: "2024-05-20T09:00:00Z"
+    source: poland_mfa
+    title: "Poland MFA: allied troop rotation continues according to plan"
+    body: >-
+      The Ministry of Foreign Affairs confirms that the rotation of allied units
+      is proceeding on schedule and is not linked to any change in the security
+      situation.
+    theater: EU_RU
+    country: PL
+    url: "https://www.gov.pl/web/diplomacy/rotation"
+    origin_domain: gov.pl

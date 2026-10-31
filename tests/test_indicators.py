@@ -102,6 +102,20 @@ class MarketShockTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["value"], "ANOMALY")
         self.assertIn("Silver -8.0%/24h (VIX +25.0%)", result["triggers"])
 
+    async def test_weaker_ruble_sets_anomaly(self) -> None:
+        now = int(time.time())
+        await self._seed("FX_IDC:USDRUB", 95.0, 101.5, now)
+        result = await compute_market_shock(self.db, now, MARKET_TH)
+        self.assertEqual(result["value"], "ANOMALY")
+        self.assertIn("USD/RUB +6.8%/24h", result["triggers"])
+
+    async def test_stronger_ruble_is_normal(self) -> None:
+        now = int(time.time())
+        await self._seed("FX_IDC:USDRUB", 95.0, 89.0, now)
+        result = await compute_market_shock(self.db, now, MARKET_TH)
+        self.assertEqual(result["value"], "NORMAL")
+        self.assertNotIn("USD/RUB -6.3%/24h", result["triggers"])
+
     async def test_vix_confirm_threshold_comes_from_settings(self) -> None:
         now = int(time.time())
         await self._seed("TVC:GOLD", 100.0, 96.5, now)

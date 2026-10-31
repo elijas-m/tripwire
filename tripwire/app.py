@@ -31,7 +31,7 @@ from .rules.domain import DomainEngine
 from .rules.lexicon import LexiconEngine
 from .rules.tripwire import TripwireEngine
 from .telegram_api import TelegramClient
-from .util import UTC, jitter_interval, to_ts, utcnow
+from .util import UTC, jitter_interval, now_ts, to_ts, utcnow
 
 log = logging.getLogger(__name__)
 
@@ -252,7 +252,7 @@ class TripwireApp:
         if raw.kind == "market":
             payload = raw.payload or {}
             symbol = str(payload.get("symbol") or raw.guid or source.id)
-            ts = to_ts(raw.published_at) or int(time.time())
+            ts = to_ts(raw.published_at) or now_ts()
             await self.db.market_add(
                 symbol, ts, payload.get("close"), payload.get("change_pct"), source.id,
             )

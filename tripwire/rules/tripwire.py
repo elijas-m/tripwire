@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import ast
 import re
-import time
 from typing import Any
 
 from ..models import Event, L0, L1, L2, L3, TripwireHit
-from ..util import domain_of, json_loads, norm_text, utcnow
+from ..util import domain_of, json_loads, norm_text, now_ts, publisher_domain
 
 
 class _SafeEval(ast.NodeVisitor):
@@ -26,6 +25,14 @@ class _SafeEval(ast.NodeVisitor):
         super().generic_visit(node)
 
 
+_DEPARTURE_DENIAL = re.compile(
+    r"\b(?:denied|denies|dismissed|rumou?r|hoax|refuted|false\s+report|not\s+true|"
+    r"no\s+plans?|no\s+evidence|unconfirmed)\b"
+    r"|(?:опроверг\w*|слух\w*|не\s+подтверд\w*|дезинформац\w*|фейк\w*)",
+    re.I,
+)
+
+
 def eval_numeric(expr: str, payload: dict[str, Any]) -> bool:
     try:
         tree = ast.parse(expr, mode="eval")
@@ -41,6 +48,7 @@ class TripwireEngine:
     def __init__(self, cfg) -> None:
         self.cfg = cfg
         self.rules: list[dict[str, Any]] = []
+        self.skipped_theater = 0
         for raw in cfg.tripwires:
             rule = dict(raw)
             rule["_regex"] = re.compile(rule["regex"]) if rule.get("regex") else None
@@ -72,6 +80,9 @@ class TripwireEngine:
         hits: list[TripwireHit] = []
         text = f"{event.title}\n{event.body_excerpt}"
         for rule in self.rules:
+            if not self._theater_ok(rule, event):
+                self.skipped_theater += 1
+                continue
             if rule.get("domain") and rule["domain"] != event.category:
                 continue
             if not self._source_ok(rule, event):
@@ -86,6 +97,12 @@ class TripwireEngine:
             elif kind == "handler":
                 hit = await self._match_handler(rule, text, event, db)
             if hit is not None:
+                hit.theater = event.theater
+                hit.confirmed, hit.confirm_reason = await self._confirmation(rule, event, db)
+                if hit.level >= L3 and not hit.confirmed:
+                    # A single weak report may alert, but it must not claim CRITICAL.
+                    hit.level = L2
+                    hit.payload["unconfirmed"] = True
                 hits.append(hit)
                 if hit.id not in event.matched_rules:
                     event.matched_rules.append(hit.id)
@@ -93,6 +110,43 @@ class TripwireEngine:
             for hit in hits:
                 hit.payload.setdefault("tripwire", hit.id)
         return hits
+
+    # ---------- rule scope ----------
+    def _theater_ok(self, rule: dict[str, Any], event: Event) -> bool:
+        allowed = rule.get("theaters")
+        if isinstance(allowed, str):
+            allowed = [allowed]
+        if not allowed:
+            allowed = [rule["theater"]] if rule.get("theater") else []
+        if not allowed:
+            return True
+        return (event.theater or "").upper() in {str(t).upper() for t in allowed}
+
+    async def _confirmation(self, rule: dict[str, Any], event: Event,
+                            db) -> tuple[bool, str]:
+        """Whether a hard rule may claim CRITICAL.
+
+        A single tier-2 wire copy is enough to raise WARNING, but strategic
+        CRITICAL needs an official source, a structured official product or an
+        independent publisher.
+        """
+        if rule.get("confirm") == "immediate_civil":
+            return True, "официальное локальное оповещение"
+        if event.tier <= 1:
+            return True, f"официальный источник (tier {event.tier})"
+        rows: list[dict[str, Any]] = []
+        if event.cluster_id is not None:
+            rows = await db.cluster_origin_rows(event.cluster_id)
+        if any(int(3 if row.get("tier") is None else row["tier"]) <= 1 for row in rows):
+            return True, "в кластере есть официальный источник"
+        origins = {
+            publisher_domain(row.get("origin_domain"), str(row.get("source_id") or ""), self.cfg)
+            for row in rows
+        }
+        origins.discard("")
+        if len(origins) >= 2:
+            return True, f"{len(origins)} независимых источника"
+        return False, "один источник"
 
     # ---------- primitives ----------
     @staticmethod
@@ -161,6 +215,13 @@ class TripwireEngine:
         if not re.search(r"(airspace|воздушн\w+ пространств|מרחב אווירי).{0,100}"
                          r"(closed|closure|shut|закрыт|נסגר)", nt, re.S):
             return None
+        if re.search(
+            r"(partial\w*|частичн\w*|will (?:be )?clos\w*|to clos\w*|plans? to clos\w*|"
+            r"may clos\w*|might clos\w*|could clos\w*|планир\w*|закро\w*|"
+            r"может закрыт\w*|могут закрыт\w*)",
+            nt,
+        ):
+            return None
         countries = set(rule.get("countries") or [])
         mentioned = set()
         for iso, pattern in self.country_alias_patterns:
@@ -174,6 +235,9 @@ class TripwireEngine:
 
     async def _ordered_departure(self, rule, text, event, db) -> TripwireHit | None:
         if rule["_regex"] is None or not rule["_regex"].search(text):
+            return None
+        if _DEPARTURE_DENIAL.search(text):
+            # "US denies reports of ordered departure" is the opposite signal.
             return None
         capitals = rule.get("capitals") or []
         nt = norm_text(text)
@@ -189,7 +253,7 @@ class TripwireEngine:
         capital = found[0]
         event.numeric_payload["capital"] = capital
 
-        since = int(time.time()) - 72 * 3600
+        since = now_ts() - 72 * 3600
         rows = await db.fetchall(
             """SELECT numeric_payload FROM events
                WHERE ingested_at>=? AND matched_rules LIKE '%TW-EU-ORDERED-DEPARTURE%'""",
@@ -241,7 +305,7 @@ class TripwireEngine:
         if event.category != "israel":
             return None
         window_min = int(rule.get("window_min", 10))
-        since = int(time.time()) - window_min * 60
+        since = now_ts() - window_min * 60
         rows = await db.fetchall(
             """SELECT numeric_payload FROM events
                WHERE ingested_at>=? AND category='israel'
@@ -292,7 +356,7 @@ class TripwireEngine:
         if zone is None:
             return None
         zone_coords = next((lat, lon) for name, lat, lon in self.swarm_zones if name == zone)
-        since = int(time.time()) - int(float(rule.get("window_hours", 24)) * 3600)
+        since = now_ts() - int(float(rule.get("window_hours", 24)) * 3600)
         rows = await db.fetchall(
             "SELECT lat, lon, numeric_payload FROM events "
             "WHERE category='earthquake' AND ingested_at>=? AND lat IS NOT NULL AND lon IS NOT NULL",

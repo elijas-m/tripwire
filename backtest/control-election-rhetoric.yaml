@@ -1,0 +1,46 @@
+# Контроль ложных §15: выборная риторика и гипотетические сценарии.
+id: control-election-rhetoric
+name: "Контроль: выборная риторика"
+expect: WATCH
+control: true
+observation_min: 12960
+provenance: >-
+  Реконструкция типовых предвыборных публикаций и дебатов (февраль 2025):
+  риторика о возможной отправке войск и помощи Украине без принятых решений.
+events:
+  - at: "2025-02-18T09:00:00Z"
+    source: gnews_germany
+    tier1: true
+    title: "German election debate: candidates clash over Ukraine aid and defence spending"
+    body: >-
+      In a televised debate the candidates argued about future aid to Ukraine and
+      the defence budget. One candidate said a hypothetical deployment of troops
+      could be considered after the election, but no decision was taken and the
+      government ruled out any immediate change.
+    theater: EU_RU
+    country: DE
+    url: "https://www.example-news.invalid/election-debate"
+    origin_domain: example-news.invalid
+  - at: "2025-02-18T11:30:00Z"
+    source: nato_news
+    tier0: true
+    title: "NATO: no comment on election campaign proposals"
+    body: >-
+      NATO declined to comment on proposals made during a national election
+      campaign and reiterated that current posture decisions are taken by allies
+      collectively.
+    theater: EU_RU
+    url: "https://www.nato.int/cps/en/natohq/news_no-comment.htm"
+    origin_domain: nato.int
+  - at: "2025-02-20T08:00:00Z"
+    source: ria_rss
+    title: "Кандидат в канцлеры ФРГ: отправка войск обсуждается только как гипотетический сценарий"
+    body: >-
+      В ходе предвыборной кампании кандидат заявил, что вопрос о возможной
+      отправке военнослужащих рассматривается лишь в рамках гипотетического
+      сценария. Конкретных решений и приказов нет; правительство опровергло
+      сообщения о подготовке.
+    theater: EU_RU
+    country: DE
+    url: "https://ria.ru/20250220/debate.html"
+    origin_domain: ria.ru

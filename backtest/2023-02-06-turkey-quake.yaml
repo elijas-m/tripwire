@@ -2,6 +2,7 @@
 id: 2023-02-06-turkey-quake
 name: "06.02.2023 — землетрясение в Турции M7.8"
 expect: CRITICAL
+truth_at: "2023-02-06T01:17:34Z"
 max_delay_min: 10
 provenance: >-
   Параметры и заголовок — из архивного события USGS us6000jllz (FDSN event API):

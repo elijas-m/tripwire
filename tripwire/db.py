@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import json as _json
-import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
@@ -12,7 +11,7 @@ from typing import Any, Iterable
 import aiosqlite
 
 from .models import Cluster, Event
-from .util import from_ts, json_dumps, json_loads, to_ts, utcnow
+from .util import from_ts, json_dumps, json_loads, now_ts, to_ts, utcnow
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (
@@ -347,12 +346,12 @@ class DB:
     async def seen_add(self, hash_value: str, kind: str) -> None:
         await self.execute(
             "INSERT OR REPLACE INTO seen (hash, kind, seen_at) VALUES (?, ?, ?)",
-            (hash_value, kind, int(time.time())),
+            (hash_value, kind, now_ts()),
         )
 
     # ---------- clusters ----------
     async def insert_cluster(self, cluster: Cluster) -> int:
-        now = int(time.time())
+        now = now_ts()
         cur = await self.execute(
             """INSERT INTO clusters
                (theater, category, title_canonical, first_seen, last_seen, sources_count,
@@ -413,7 +412,7 @@ class DB:
         )
 
     async def add_cluster_source(self, cluster_id: int, source_id: str) -> bool:
-        now = int(time.time())
+        now = now_ts()
         cur = await self.execute(
             "INSERT OR IGNORE INTO cluster_sources (cluster_id, source_id, first_seen) VALUES (?, ?, ?)",
             (cluster_id, source_id, now),
@@ -436,6 +435,13 @@ class DB:
             (cluster_id,),
         )
         return [r["source_id"] for r in rows]
+
+    async def cluster_origin_rows(self, cluster_id: int) -> list[dict[str, Any]]:
+        rows = await self.fetchall(
+            "SELECT source_id, origin_domain, tier FROM events WHERE cluster_id=?",
+            (cluster_id,),
+        )
+        return [dict(r) for r in rows]
 
     async def open_cluster_count(self) -> int:
         row = await self.fetchone("SELECT COUNT(*) AS n FROM clusters WHERE state='open'")
@@ -472,7 +478,7 @@ class DB:
                  level_since=excluded.level_since, last_update=excluded.last_update,
                  cooldown_until=excluded.cooldown_until,
                  muted_until=COALESCE(excluded.muted_until, theater_state.muted_until)""",
-            (theater, round(score, 3), level, level_since, int(time.time()),
+            (theater, round(score, 3), level, level_since, now_ts(),
              cooldown_until, muted_until),
         )
 
@@ -484,7 +490,7 @@ class DB:
         cur = await self.execute(
             """INSERT INTO alerts (cluster_id, level, sent_at, tg_message_id, explain, tripwire_id, status)
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (cluster_id, level, int(time.time()), tg_message_id, json_dumps(explain), tripwire_id, status),
+            (cluster_id, level, now_ts(), tg_message_id, json_dumps(explain), tripwire_id, status),
         )
         return cur.lastrowid
 
@@ -497,7 +503,7 @@ class DB:
         )
 
     async def alert_set_ack(self, alert_id: int) -> None:
-        await self.execute("UPDATE alerts SET ack_at=? WHERE id=?", (int(time.time()), alert_id))
+        await self.execute("UPDATE alerts SET ack_at=? WHERE id=?", (now_ts(), alert_id))
 
     async def alert_set_explain(self, alert_id: int, explain: dict[str, Any]) -> None:
         await self.execute(
@@ -583,7 +589,7 @@ class DB:
         row = await self.fetchone("SELECT * FROM alerts WHERE id=?", (alert_id,))
         if not row:
             return False
-        now = int(time.time())
+        now = now_ts()
         await self.execute("UPDATE alerts SET ack_at=? WHERE id=?", (now, alert_id))
         if row["cluster_id"]:
             await self.execute(
@@ -601,7 +607,7 @@ class DB:
             )
         if not row:
             return 0
-        now = int(time.time())
+        now = now_ts()
         await self.execute("UPDATE alerts SET ack_at=? WHERE id=?", (now, row["id"]))
         if cluster_id is not None:
             await self.execute("UPDATE clusters SET ack_at=? WHERE id=?", (now, cluster_id))
@@ -611,7 +617,7 @@ class DB:
     async def journal_add(self, actor: str, action: str, payload: dict[str, Any]) -> int:
         cur = await self.execute(
             "INSERT INTO config_journal (ts, actor, action, payload) VALUES (?, ?, ?, ?)",
-            (int(time.time()), actor, action, json_dumps(payload)),
+            (now_ts(), actor, action, json_dumps(payload)),
         )
         return cur.lastrowid
 
@@ -638,7 +644,7 @@ class DB:
         self, source_id: str, latency_ms: float, items: int, etag: str | None,
         last_modified: str | None, not_modified: bool = False,
     ) -> None:
-        now = int(time.time())
+        now = now_ts()
         row = await self.fetchone("SELECT * FROM source_health WHERE source_id=?", (source_id,))
         prev_avg = row["avg_latency_ms"] if row and row["avg_latency_ms"] else 0.0
         avg = (prev_avg * 0.8 + latency_ms * 0.2) if prev_avg else latency_ms
@@ -659,7 +665,7 @@ class DB:
         )
 
     async def health_error(self, source_id: str, error: str) -> None:
-        now = int(time.time())
+        now = now_ts()
         await self.execute(
             """INSERT INTO source_health
                (source_id, last_checked, last_error, last_error_at, consecutive_failures,
@@ -682,7 +688,7 @@ class DB:
     async def meta_set(self, key: str, value: Any) -> None:
         await self.execute(
             "INSERT OR REPLACE INTO meta (key, value, updated_at) VALUES (?, ?, ?)",
-            (key, json_dumps(value) if not isinstance(value, str) else value, int(time.time())),
+            (key, json_dumps(value) if not isinstance(value, str) else value, now_ts()),
         )
 
     async def meta_get(self, key: str, default: Any = None) -> Any:
@@ -700,7 +706,7 @@ class DB:
         await self.execute(
             """INSERT OR REPLACE INTO indicator_state (name, value, updated_at, meta)
                VALUES (?, ?, ?, ?)""",
-            (name, value, int(time.time()), json_dumps(meta or {})),
+            (name, value, now_ts(), json_dumps(meta or {})),
         )
 
     async def indicator_get(self, name: str) -> dict[str, Any] | None:
@@ -736,7 +742,7 @@ class DB:
     async def heartbeat(self, component: str, detail: str = "") -> None:
         await self.execute(
             "INSERT INTO heartbeats (ts, component, detail) VALUES (?, ?, ?)",
-            (int(time.time()), component, detail[:300]),
+            (now_ts(), component, detail[:300]),
         )
 
     async def last_heartbeat(self, component: str = "main") -> int | None:
@@ -748,7 +754,7 @@ class DB:
     async def pending_add(self, due_at: int, kind: str, payload: dict[str, Any]) -> int:
         cur = await self.execute(
             "INSERT INTO pending_actions (created_at, due_at, kind, payload) VALUES (?, ?, ?, ?)",
-            (int(time.time()), due_at, kind, json_dumps(payload)),
+            (now_ts(), due_at, kind, json_dumps(payload)),
         )
         return cur.lastrowid
 
@@ -772,7 +778,7 @@ class DB:
         await self.execute(
             """INSERT OR REPLACE INTO translations
                (hash, provider, dst_lang, source, target, created_at) VALUES (?, ?, ?, ?, ?, ?)""",
-            (hash_value, provider, dst_lang, source, target, int(time.time())),
+            (hash_value, provider, dst_lang, source, target, now_ts()),
         )
 
     async def translation_count(self) -> int:
@@ -783,7 +789,7 @@ class DB:
     async def cleanup(
         self, event_days: int = 180, seen_days: int = 14, translation_days: int = 180,
     ) -> None:
-        now = int(time.time())
+        now = now_ts()
         await self.execute("DELETE FROM events WHERE ingested_at < ?", (now - event_days * 86400,))
         await self.execute("DELETE FROM seen WHERE seen_at < ?", (now - seen_days * 86400,))
         await self.execute(

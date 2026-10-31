@@ -155,6 +155,7 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
     def test_theater_aliases(self) -> None:
         self.assertEqual(theater_arg("Израиль"), "ISRAEL")
         self.assertEqual(theater_arg("gulf"), "GULF")
+        self.assertEqual(theater_arg("mena"), "MENA")
         self.assertIsNone(theater_arg("atlantis"))
 
 

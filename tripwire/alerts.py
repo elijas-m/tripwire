@@ -5,14 +5,12 @@ from __future__ import annotations
 import asyncio
 import html
 import logging
-import time
-from datetime import datetime
 from typing import Any
 
 from .models import L0, L1, L2, L3, LEVEL_NAMES, Cluster, Event, ScoreResult, TripwireHit
 from .telegram_api import TelegramClient, TelegramError, esc
 from .translate import Translator
-from .util import UTC, from_ts, json_loads, strip_html
+from .util import from_ts, json_loads, now_ts, strip_html, utcnow
 
 log = logging.getLogger(__name__)
 
@@ -20,6 +18,7 @@ THEATER_LABELS = {
     "EU_RU": "Европа/Россия",
     "ISRAEL": "Израиль",
     "GULF": "Залив",
+    "MENA": "Ближний Восток",
     "PANDEMIC": "Здоровье",
     "NATURE": "Природа",
     "MARKETS": "Рынки",
@@ -94,7 +93,7 @@ class AlertManager:
             if evidence < floor:
                 return {"action": "weak_evidence", "level": level,
                         "evidence": round(evidence, 2)}
-        now = int(time.time())
+        now = now_ts()
 
         state = await self.db.theater_get(theater)
         muted_until = int(state.get("muted_until") or 0)
@@ -192,9 +191,9 @@ class AlertManager:
         if cluster is not None and cluster.id is not None:
             cluster.tg_message_id = message_id
             cluster.tg_thread_id = int(thread_id) if thread_id else None
-            cluster.last_alert_at = from_ts(int(time.time()))
+            cluster.last_alert_at = from_ts(now_ts())
             await self.db.set_cluster_message(cluster.id, message_id, cluster.tg_thread_id)
-            await self.db.cluster_mark_alert(cluster.id, int(time.time()))
+            await self.db.cluster_mark_alert(cluster.id, now_ts())
 
         if level >= L3 and self.alerts_cfg.get("pin_critical", True):
             await self.tg.pin(message_id)
@@ -264,10 +263,10 @@ class AlertManager:
             "thread_id": thread_id,
             "attempt": 0,
         }
-        await self.db.pending_add(int(time.time()) + int(minutes[0]) * 60, "alert_repeat", payload)
+        await self.db.pending_add(now_ts() + int(minutes[0]) * 60, "alert_repeat", payload)
 
     async def process_pending(self) -> int:
-        rows = await self.db.pending_due(int(time.time()))
+        rows = await self.db.pending_due(now_ts())
         handled = 0
         for row in rows:
             if row["kind"] != "alert_repeat":
@@ -321,7 +320,7 @@ class AlertManager:
 
         if attempt < len(minutes):
             await self.db.pending_add(
-                int(time.time()) + (int(minutes[attempt]) - int(minutes[attempt - 1])) * 60,
+                now_ts() + (int(minutes[attempt]) - int(minutes[attempt - 1])) * 60,
                 "alert_repeat",
                 {**payload, "attempt": attempt},
             )
@@ -335,7 +334,7 @@ class AlertManager:
     ) -> str:
         icon = LEVEL_ICONS.get(level, "🟠")
         label = THEATER_LABELS.get(theater, theater)
-        stamp = datetime.now(UTC).strftime("%H:%M UTC")
+        stamp = utcnow().strftime("%d.%m.%Y %H:%M UTC")
         header = f"{icon} <b>{LEVEL_NAMES.get(level, 'WARNING')}</b> · ТЕАТР: {esc(label)} · {stamp}"
         if self.test_mode:
             header = f"🧪 <b>SELFTEST</b> · {header}"
@@ -349,6 +348,7 @@ class AlertManager:
         sources, total_sources = await self._source_lines(cluster, event)
         score = float(getattr(decision, "score", 0.0) or 0.0)
         threshold = float(getattr(decision, "threshold", 0.0) or 0.0)
+        confidence = self._confidence(decision, tripwire, total_sources)
         trigger = (tripwire.id if tripwire else "") or ", ".join(event.matched_rules or []) or "корреляция"
         accompanying = await self._accompanying()
         others = await self._other_theaters(theater)
@@ -357,6 +357,8 @@ class AlertManager:
             header,
             "",
             esc(one_liner[:240]),
+            "",
+            f"Уровень: <b>{LEVEL_NAMES.get(level, 'WARNING')}</b> · счёт {score:.1f} (порог {threshold:.0f}) · подтверждение: {esc(confidence)} · оценка не откалибрована",
             "",
             f"Важно: {esc(why)}",
         ]
@@ -374,18 +376,36 @@ class AlertManager:
                     lines.append(f"Ревизия: M{float(revised['mag']):.1f} → M{float(new_mag):.1f}")
             except (TypeError, ValueError):
                 pass
+        unknowns: list[str] = []
+        if tripwire is not None and not tripwire.confirmed:
+            unknowns.append("независимое подтверждение (сейчас один источник)")
+        if level >= L2 and total_sources < 2:
+            unknowns.append("второй независимый источник")
+        if unknowns:
+            lines += ["", "Не установлено:", *[f"• {esc(item)}" for item in unknowns]]
         lines += [
             "",
             f"Источники ({total_sources}):",
             *sources,
             "",
-            f"Счёт театра: {score:.1f} (порог {threshold:.0f}) · Триггер: {esc(trigger)}",
+            f"Триггер: {esc(trigger)}",
             f"Сопутствующее: {accompanying}",
             f"Статус других театров: {others}",
             "",
             f"/why {alert_id or trigger}   /ack   /mute {theater} 2",
         ]
         return "\n".join(lines)[:4096]
+
+    @staticmethod
+    def _confidence(decision, tripwire: TripwireHit | None, total_sources: int) -> str:
+        if tripwire is not None and tripwire.confirm_reason:
+            return tripwire.confirm_reason
+        sources = int(getattr(decision, "sources", 0) or 0) or total_sources
+        if sources >= 2:
+            return f"{sources} независимых источника"
+        if sources == 1:
+            return "1 источник"
+        return "по совокупности сигналов"
 
     async def _source_lines(self, cluster: Cluster | None, event: Event) -> tuple[list[str], int]:
         if cluster is not None and cluster.id is not None:
@@ -409,11 +429,21 @@ class AlertManager:
             src = self.cfg.sources_by_id.get(ev.source_id)
             name = src.name if src else ev.source_id
             tier = ev.tier
+            original = strip_html(ev.title or "")[:160]
             title = esc(raw_title[:180])
+            if original and original.strip() != raw_title.strip():
+                title += f" <i>(ориг.: {esc(original)})</i>"
+            published = ev.published_at or ev.ingested_at
+            received = ev.ingested_at
+            stamp = ""
+            if published:
+                stamp = f"опубл. {published.strftime('%d.%m %H:%M UTC')}"
+            if received:
+                stamp += f" · получ. {received.strftime('%d.%m %H:%M UTC')}"
             link = ""
             if ev.url:
                 link = f' <a href="{html.escape(ev.url, quote=True)}">[ссылка]</a>'
-            lines.append(f"• {esc(name)} (tier {tier}) — {title}{link}")
+            lines.append(f"• {esc(name)} (tier {tier}) · {stamp} — {title}{link}")
         if len(ordered) > MAX_SOURCES:
             lines.append(f"• …и ещё {len(ordered) - MAX_SOURCES}")
         return lines, len(ordered)
@@ -426,6 +456,8 @@ class AlertManager:
             why = CATEGORY_WHY[event.category]
         else:
             why = "Совокупный счёт театра превысил порог."
+        if tripwire is not None and not tripwire.confirmed:
+            why = "Не подтверждено независимо. " + why
         if score_result is not None and score_result.matched:
             terms = ", ".join(score_result.matched[:5])
             why = f"{why} Маркеры: {terms}."
@@ -556,7 +588,7 @@ class AlertManager:
     def _silent(self, level: int) -> bool:
         if level >= L3:
             return False
-        local = datetime.now(UTC).astimezone(self._tz())
+        local = utcnow().astimezone(self._tz())
         night = self.cfg.app.get("night", {"start": 23, "end": 7})
         start, end = int(night.get("start", 23)), int(night.get("end", 7))
         return local.hour >= start or local.hour < end
@@ -598,7 +630,7 @@ class AlertManager:
             sources = [event.source_id]
 
         explain: dict[str, Any] = {
-            "created_at": datetime.now(UTC).isoformat(),
+            "created_at": utcnow().isoformat(),
             "level": level,
             "level_name": LEVEL_NAMES.get(level),
             "theater": theater,
@@ -648,7 +680,7 @@ class AlertManager:
         if alert_id and cluster_id:
             cluster = await self.db.get_cluster(cluster_id)
             if cluster:
-                cluster.ack_at = from_ts(int(time.time()))
+                cluster.ack_at = from_ts(now_ts())
                 await self.db.update_cluster(cluster)
         return alert_id
 

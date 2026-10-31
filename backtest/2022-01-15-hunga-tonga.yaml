@@ -2,6 +2,7 @@
 id: 2022-01-15-hunga-tonga
 name: "15.01.2022 — Hunga Tonga, цунами"
 expect: CRITICAL
+truth_at: "2022-01-15T04:15:00Z"
 max_delay_min: 30
 provenance: >-
   Бюллетень PTWC №1 от 15.01.2022 04:30 UTC — реконструкция по тексту

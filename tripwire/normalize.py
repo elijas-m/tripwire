@@ -67,17 +67,16 @@ class Normalizer:
             if lat is None:
                 lat, lon = g_lat, g_lon
 
-        if theater in ("EU_RU", "ISRAEL", "GULF"):
+        if theater in ("EU_RU", "ISRAEL", "GULF", "MENA"):
             inferred = self.geo.theater_for_country(country)
-            if inferred and not self.geo.country_for_theater(theater, country):
-                # Keep the source theater label; geo_factor will down-weight it.
-                pass
+            if inferred and inferred != theater and not self.geo.country_for_theater(theater, country):
+                theater = inferred
 
         # "US deploys forces to the Middle East" belongs to the destination
         # theater, not to the wire's home theater. The actor's location is not
         # the event location, so drop the actor-derived geography too.
         projected = False
-        if theater in ("EU_RU", "ISRAEL", "GULF") and self.geo.is_force_projection(title):
+        if theater in ("EU_RU", "ISRAEL", "GULF", "MENA") and self.geo.is_force_projection(title):
             destination = self.geo.force_projection_theater(title)
             if destination and destination != theater:
                 theater = destination

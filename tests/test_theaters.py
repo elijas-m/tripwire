@@ -81,6 +81,19 @@ class LexiconTests(unittest.TestCase):
             event("Missile strike kills dozens in Kyiv", tier=0), 1.0, 1.0)
         self.assertFalse(result.dropped)
 
+    def test_escalation_terms_in_denial_sentence_do_not_score(self) -> None:
+        result = self.engine.score(
+            event("State Department denies reports of an ordered departure "
+                  "from the Kyiv embassy", tier=0), 1.0, 1.0)
+        self.assertEqual(result.base, 0.0)
+        self.assertEqual(result.score, 0.0)
+
+    def test_denial_does_not_silence_other_sentences(self) -> None:
+        result = self.engine.score(
+            event("US denies evacuation reports. Missile strike hit Kyiv overnight.",
+                  tier=0), 1.0, 1.0)
+        self.assertGreater(result.base, 0.0)
+
     def test_research_publication_dropped_even_for_tier_zero(self) -> None:
         result = self.engine.score(event(
             "Research: Measles, mumps and rubella: lab-confirmed cases in England 2026",

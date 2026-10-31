@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import time
 from typing import Any
+
+from .util import now_ts as clock_ts
 
 MARKET_SYMBOLS = {
     "ICEEUR:BRN1!": "Brent",
@@ -76,7 +77,7 @@ async def compute_market_shock(
     window: a metal drop on its own is often a routine correction, a metal drop
     with spiking volatility is a risk-off shock.
     """
-    now_ts = int(now_ts or time.time())
+    now_ts = int(now_ts or clock_ts())
     th = dict(DEFAULT_MARKET_THRESHOLDS)
     for key, value in (settings or {}).items():
         if key in th:
@@ -128,7 +129,8 @@ async def compute_market_shock(
         if pct is None:
             continue
         metrics[f"{label.lower().replace('/', '')}_pct"] = round(pct, 2)
-        if pct <= -th["fx_drop_pct"]:
+        # USD/XXX rising means the local currency is weakening.
+        if pct >= th["fx_drop_pct"]:
             triggers.append(f"{label} {pct:+.1f}%/24h")
 
     value = "ANOMALY" if triggers else "NORMAL"

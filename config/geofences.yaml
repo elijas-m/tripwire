@@ -4,7 +4,7 @@ version: 1
 theaters:
   EU_RU:
     label: "Европа/Россия"
-    countries: [RU, BY, UA, PL, LT, LV, EE, FI, "NO", SE, RO, MD, DE, CZ, SK, HU, DK, NL, BE, FR, GB, IT, ES, PT, GR, TR, BG, HR, SI, AT, CH, IE, IS, US, CA]
+    countries: [RU, BY, UA, PL, LT, LV, EE, FI, "NO", SE, RO, MD, DE, CZ, SK, HU, DK, NL, BE, FR, GB, IT, ES, PT, GR, BG, HR, SI, AT, CH, IE, IS, US, CA]
     core_countries: [RU, BY, UA, PL, LT, LV, EE, FI, "NO", SE, RO, MD]
     bboxes:
       - [44.0, 10.0, 70.0, 60.0]      # Europe incl. Baltic/Black Sea
@@ -26,6 +26,14 @@ theaters:
       - [12.0, 34.0, 32.0, 60.0]
     keywords: [hormuz, tanker, aramco, saudi, uae, qatar, kuwait, bahrain, oman, red sea, ras tanura, abqaiq, jubail, ормуз, танкер, саудов, катар, красное море, הורמוז, סעודיה]
     oil_infrastructure: [Ras Tanura, Abqaiq, Jubail, Khurais, Shaybah, Yanbu, Ras Laffan, Ruwais, Fujairah]
+
+  MENA:
+    label: "Ближний Восток"
+    countries: [TR]
+    core_countries: [TR]
+    bboxes:
+      - [35.5, 25.5, 42.5, 45.0]
+    keywords: [turkey, türkiye, turkiye, ankara, erdogan, istanbul, турция, турции, анкара, эрдоган, טורקיה]
 
   PANDEMIC:
     label: "Здоровье"
@@ -49,6 +57,16 @@ nato:
   countries: [US, CA, GB, FR, DE, IT, ES, PT, NL, BE, LU, DK, "NO", IS, PL, CZ, SK, HU, RO, BG, GR, TR, EE, LV, LT, SI, HR, AL, ME, MK, FI, SE]
 eu:
   countries: [AT, BE, BG, HR, CY, CZ, DK, EE, FI, FR, DE, GR, HU, IE, IT, LV, LT, LU, MT, NL, PL, PT, RO, SK, SI, ES, SE]
+
+# Cross-theater escalation bonus is limited to causally adjacent theaters.
+related_theaters:
+  EU_RU: [GULF, MENA]
+  ISRAEL: [GULF, MENA]
+  GULF: [ISRAEL, EU_RU, MENA]
+  MENA: [ISRAEL, GULF, EU_RU]
+  PANDEMIC: []
+  NATURE: []
+  MARKETS: []
 
 # Known flashpoints used for "geo inside" decisions when no explicit country match.
 flashpoints:
@@ -79,6 +97,8 @@ force_projection_regions:
     aliases: [poland, польш, lithuania, литв, latvia, латв, estonia, эстон, finland,
               финлянд, ukraine, украин, black sea, черное море, kaliningrad,
               калининград, belarus, беларус, romania, румын, moldova, молдов]
+  - theater: MENA
+    aliases: [turkey, türkiye, turkiye, турция, турци, ankara, анкар, istanbul, стамбул]
   - theater: GULF
     aliases: [middle east, ближний восток, ближневосточн, near east]
 

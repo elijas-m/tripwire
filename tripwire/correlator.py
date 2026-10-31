@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
 from .models import Cluster, Event, L0, L1, L2, L3, TripwireHit
-from .util import domain_of, from_ts, utcnow
+from .util import from_ts, now_ts, publisher_domain
 
 
 @dataclass(slots=True)
@@ -39,6 +38,10 @@ class Correlator:
         self.tz = ZoneInfo(cfg.app.get("timezone", "UTC"))
         self.night = cfg.app.get("night", {"start": 23, "end": 7})
         self.modifiers = cfg.thresholds.get("modifiers", {})
+        self.relations = {
+            str(k).upper(): {str(v).upper() for v in (vals or [])}
+            for k, vals in (cfg.geofences.get("related_theaters") or {}).items()
+        }
         self._lock = asyncio.Lock()
         # theater -> level name -> (value, expire_ts); temporary /threshold overrides
         self._overrides: dict[str, dict[str, tuple[float, int]]] = {}
@@ -54,16 +57,26 @@ class Correlator:
     async def _independence(self, cluster: Cluster | None) -> tuple[int, bool]:
         if cluster is None or cluster.id is None:
             return 0, False
-        source_ids = await self.db.cluster_sources(cluster.id)
+        rows = await self.db.cluster_origin_rows(cluster.id)
         domains: set[str] = set()
         tier01 = False
-        for sid in source_ids:
-            src = self.cfg.sources_by_id.get(sid)
-            if not src:
-                continue
-            domains.add(domain_of(src.url) or sid)
-            if src.tier <= 1:
+        for row in rows:
+            sid = str(row.get("source_id") or "")
+            origin = publisher_domain(row.get("origin_domain"), sid, self.cfg)
+            if origin:
+                domains.add(origin)
+            tier = row.get("tier")
+            if int(3 if tier is None else tier) <= 1:
                 tier01 = True
+        if not domains:
+            # Legacy clusters created before events were stored with origins.
+            for sid in await self.db.cluster_sources(cluster.id):
+                src = self.cfg.sources_by_id.get(sid)
+                if not src:
+                    continue
+                domains.add(publisher_domain("", sid, self.cfg))
+                if src.tier <= 1:
+                    tier01 = True
         return len(domains), tier01
 
     def _allowed_level(self, wanted: int, sources: int, tier01: bool, tripwire: bool) -> int:
@@ -85,7 +98,7 @@ class Correlator:
     # ---------- temporary threshold overrides ----------
     async def load_overrides(self) -> None:
         self._overrides = {}
-        now_ts = int(time.time())
+        now = now_ts()
         for theater in self.cfg.geofences.get("theaters", {}):
             raw = await self.db.meta_get(f"threshold_override:{theater}", {}) or {}
             active: dict[str, tuple[float, int]] = {}
@@ -97,14 +110,14 @@ class Correlator:
                     until = int(item.get("until") or 0)
                 except (TypeError, ValueError):
                     continue
-                if until > now_ts:
+                if until > now:
                     active[name] = (value, until)
             if active:
                 self._overrides[theater] = active
 
     async def set_override(self, theater: str, level_name: str, value: float,
                            ttl_hours: float) -> dict[str, Any]:
-        until = int(time.time() + max(1.0, ttl_hours) * 3600)
+        until = int(now_ts() + max(1.0, ttl_hours) * 3600)
         self._overrides.setdefault(theater, {})[level_name] = (float(value), until)
         levels = {
             name: {"value": val, "until": exp}
@@ -114,12 +127,12 @@ class Correlator:
         return {"theater": theater, "until": until, "levels": self.effective_levels(theater)}
 
     def effective_levels(self, theater: str) -> dict[str, float]:
-        now_ts = int(time.time())
+        now = now_ts()
         out = {}
         for name in ("watch", "warning", "critical"):
             value = float(self.levels[name])
             entry = self._overrides.get(theater, {}).get(name)
-            if entry and entry[1] > now_ts:
+            if entry and entry[1] > now:
                 value = entry[0]
             out[name] = value
         return out
@@ -136,11 +149,11 @@ class Correlator:
 
     async def _modifiers(self, event: Event, theater: str) -> dict[str, float]:
         mods: dict[str, float] = {}
-        if theater in ("EU_RU", "ISRAEL", "GULF", "PANDEMIC"):
+        if theater in ("EU_RU", "ISRAEL", "GULF", "MENA", "PANDEMIC"):
             shock = await self.db.indicator_get("market_shock")
             if shock and shock.get("value") == "ANOMALY":
                 mods["market_shock"] = float(self.modifiers.get("market_shock", 1.25))
-        if theater in ("EU_RU", "ISRAEL", "GULF"):
+        if theater in ("EU_RU", "ISRAEL", "GULF", "MENA"):
             ppi = await self.db.indicator_get("ppi")
             if ppi and ppi.get("value") == "ANOMALY":
                 mods["ppi"] = float(self.modifiers.get("ppi_anomaly", 1.15))
@@ -151,9 +164,11 @@ class Correlator:
             is_night = local.hour >= start or local.hour < end
             if is_night:
                 mods["night"] = float(self.modifiers.get("night", 1.2))
+        related = self.relations.get(theater.upper(), set())
         others = 0
         for row in await self.db.theater_all():
-            if row["theater"] != theater and int(row["level"] or 0) >= L1:
+            other = str(row["theater"] or "").upper()
+            if other != theater and other in related and int(row["level"] or 0) >= L1:
                 others += 1
         if others >= 1:
             mods["multi_theater"] = float(self.modifiers.get("multi_theater", 1.2))
@@ -178,10 +193,10 @@ class Correlator:
     async def _apply_locked(self, event: Event, score: float, cluster: Cluster | None,
                             tripwire: TripwireHit | None,
                             revision: bool = False) -> TheaterDecision:
-        now_ts = int(time.time())
+        now = now_ts()
         state = await self.db.theater_get(event.theater)
         prev_score = float(state.get("score") or 0.0)
-        decayed = self._decay(prev_score, state.get("last_update"), event.theater, now_ts)
+        decayed = self._decay(prev_score, state.get("last_update"), event.theater, now)
         prev_level = int(state.get("level") or 0)
 
         mods = await self._modifiers(event, event.theater)
@@ -189,6 +204,7 @@ class Correlator:
         for value in mods.values():
             mult *= value
         contribution = score * mult
+        tripwire_points: float | None = None
         if tripwire is not None:
             tripwire_points = float(
                 self.levels["critical" if tripwire.level >= L3 else "warning"]
@@ -200,21 +216,27 @@ class Correlator:
             cluster.total_score = new_score
         sources, tier01 = await self._independence(cluster)
         levels = self.effective_levels(event.theater)
+        # Modifiers are context: they may accelerate a signal, but they cannot
+        # lift a theater to CRITICAL on their own.
+        base_score = decayed + (tripwire_points if tripwire_points is not None else score)
+        base_wanted = self._required_level(base_score, event.theater)
         wanted = self._required_level(new_score, event.theater)
-        if "ppi" in mods and tripwire is None and wanted >= L3:
-            without_ppi = decayed + contribution / mods["ppi"]
-            if without_ppi < levels["critical"]:
-                wanted = L2
+        if wanted >= L3 and base_wanted < L3:
+            wanted = L2
         if tripwire is not None:
             wanted = max(wanted, tripwire.level)
+            if not tripwire.confirmed:
+                # An unconfirmed hard rule may alert at WARNING, but it must not
+                # create a new CRITICAL even when the theater score is near it.
+                wanted = min(wanted, L2)
         allowed = self._allowed_level(wanted, sources, tier01, tripwire is not None)
 
         level = max(prev_level, allowed)
-        level_since = state.get("level_since") or now_ts
+        level_since = state.get("level_since") or now
         if allowed < prev_level:
-            level = await self._maybe_lower(event.theater, prev_level, new_score, state, now_ts)
+            level = await self._maybe_lower(event.theater, prev_level, new_score, state, now)
             if level < prev_level:
-                level_since = now_ts
+                level_since = now
 
         await self.db.theater_set(
             event.theater, new_score, level, level_since,
@@ -262,18 +284,18 @@ class Correlator:
             return await self._recompute_locked()
 
     async def _recompute_locked(self) -> list[dict[str, Any]]:
-        now_ts = int(time.time())
+        now = now_ts()
         out = []
         for state in await self.db.theater_all():
             theater = state["theater"]
-            score = self._decay(float(state.get("score") or 0), state.get("last_update"), theater, now_ts)
+            score = self._decay(float(state.get("score") or 0), state.get("last_update"), theater, now)
             level = int(state.get("level") or 0)
             if level > 0:
                 levels = self.effective_levels(theater)
                 threshold = float(levels["watch"] if level == L1 else
                                   levels["warning"] if level == L2 else levels["critical"])
                 if score < threshold * float(self.hys.get("down_factor", 0.6)):
-                    level = await self._maybe_lower(theater, level, score, state, now_ts)
+                    level = await self._maybe_lower(theater, level, score, state, now)
             await self.db.theater_set(
                 theater, score, level, state.get("level_since"),
                 cooldown_until=state.get("cooldown_until"), muted_until=state.get("muted_until"),
@@ -283,10 +305,10 @@ class Correlator:
 
     async def snapshot(self) -> list[dict[str, Any]]:
         rows = await self.db.theater_all()
-        now_ts = int(time.time())
+        now = now_ts()
         out = []
         for row in rows:
-            score = self._decay(float(row.get("score") or 0), row.get("last_update"), row["theater"], now_ts)
+            score = self._decay(float(row.get("score") or 0), row.get("last_update"), row["theater"], now)
             out.append({
                 "theater": row["theater"], "score": round(score, 2),
                 "level": int(row.get("level") or 0),

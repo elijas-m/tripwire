@@ -2,6 +2,7 @@
 id: 2020-01-30-pheic
 name: "30.01.2020 — ВОЗ объявила PHEIC"
 expect: CRITICAL
+truth_at: "2020-01-30T19:00:00Z"
 provenance: >-
   Дословный фрагмент заявления ВОЗ от 30.01.2020 (who.int, Statement on the second
   meeting of the IHR Emergency Committee).

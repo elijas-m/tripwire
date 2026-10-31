@@ -11,10 +11,11 @@ import re
 import unicodedata
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import urlsplit, urlunsplit, urljoin, parse_qsl, urlencode
 
 UTC = timezone.utc
+_clock: Callable[[], datetime] | None = None
 
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
@@ -22,8 +23,18 @@ _SCHEME_RE = re.compile(r"^[a-z][a-z0-9+.-]*://", re.I)
 _TRACKING_PREFIXES = ("utm_", "fbclid", "gclid", "yclid", "mc_", "ref_", "igshid")
 
 
+def set_clock(fn: Callable[[], datetime] | None) -> None:
+    """Point-in-time replay hook; None restores the wall clock."""
+    global _clock
+    _clock = fn
+
+
 def utcnow() -> datetime:
-    return datetime.now(UTC)
+    return _clock() if _clock is not None else datetime.now(UTC)
+
+
+def now_ts() -> int:
+    return int(utcnow().timestamp())
 
 
 def to_ts(dt: datetime | None) -> int | None:
@@ -139,6 +150,31 @@ def domain_of(url: str | None) -> str:
     if host.startswith("www."):
         host = host[4:]
     return host
+
+
+_PLATFORM_DOMAINS = frozenset({"news.google.com", "t.me", "telegram.me", "x.com", "twitter.com"})
+
+
+def publisher_domain(origin_domain: str | None, source_id: str, cfg: Any) -> str:
+    """The publishing outlet, not the feed host.
+
+    Google News and Telegram are transport platforms: several feeds share the
+    same hostname, so counting the feed domain collapses independent outlets
+    into one source. Prefer the configured publisher domain, then the source id.
+    """
+    origin = (origin_domain or "").strip().lower()
+    source = getattr(cfg, "sources_by_id", {}).get(source_id)
+    if origin and origin not in _PLATFORM_DOMAINS:
+        return origin
+    if source is not None:
+        if source.origin_domains:
+            return str(source.origin_domains[0]).lower()
+        if origin in ("t.me", "telegram.me", "x.com", "twitter.com"):
+            return source_id
+        feed_host = domain_of(source.url)
+        if feed_host and feed_host not in _PLATFORM_DOMAINS:
+            return feed_host
+    return source_id
 
 
 def join_url(base: str, href: str) -> str:

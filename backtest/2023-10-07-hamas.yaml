@@ -2,6 +2,7 @@
 id: 2023-10-07-hamas
 name: "07.10.2023 — атака ХАМАС на Израиль"
 expect: CRITICAL
+truth_at: "2023-10-07T03:25:00Z"
 max_delay_min: 15
 provenance: >-
   Формулировки IDF/МВД — реконструкция по публикациям @idfonline и заявлениям

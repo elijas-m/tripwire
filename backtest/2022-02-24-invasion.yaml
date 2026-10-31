@@ -3,6 +3,7 @@
 id: 2022-02-24-invasion
 name: "24.02.2022 — вторжение РФ в Украину"
 expect: CRITICAL
+truth_at: "2022-02-24T03:00:00Z"
 max_delay_min: 15
 provenance: >-
   Текст обращения президента РФ — дословный фрагмент en.kremlin.ru/events/president/news/67843

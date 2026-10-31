@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import re
-import time
 from dataclasses import dataclass
 from typing import Any
 
 from .geo import GeoIndex, haversine_km
 from .models import Cluster, Event
 from .simhash import distance as simhash_distance
-from .util import norm_text, utcnow
+from .util import norm_text, now_ts, utcnow
 
 
 @dataclass(slots=True)
@@ -94,7 +93,7 @@ class Deduper:
         return False
 
     async def find_near_duplicate(self, event: Event, db) -> Event | None:
-        since = int(time.time()) - 24 * 3600
+        since = now_ts() - 24 * 3600
         rows = await db.fetchall(
             """SELECT * FROM events
                WHERE ingested_at>=? AND simhash<>0 AND theater=? AND category=?
@@ -186,7 +185,7 @@ class Deduper:
 
     async def find_cluster(self, event: Event, db) -> Cluster | None:
         window_h = self.aftershock_window_h if event.category == "earthquake" else self.cluster_window_h
-        since = int(time.time()) - int(window_h * 3600)
+        since = now_ts() - int(window_h * 3600)
         clusters = await db.open_clusters(event.theater, event.category, since)
         if not clusters:
             return None

@@ -39,6 +39,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--backtest-only", default="",
                         help="comma-separated scenario ids for --backtest")
     parser.add_argument("--backtest-dir", default="", help="scenario directory override")
+    parser.add_argument("--backtest-json", default="",
+                        help="write the point-in-time backtest report as JSON")
     parser.add_argument("--config-root", default="", help="project root (default: package parent)")
     parser.add_argument("--log-level", default="", help="override log level")
     return parser.parse_args(argv)
@@ -75,7 +77,9 @@ async def amain(args: argparse.Namespace) -> int:
 
             only = [s.strip() for s in args.backtest_only.split(",") if s.strip()]
             directory = Path(args.backtest_dir) if args.backtest_dir else None
-            report = await run_backtest(app, only=only or None, directory=directory)
+            export = Path(args.backtest_json) if args.backtest_json else None
+            report = await run_backtest(app, only=only or None, directory=directory,
+                                        export=export)
             print(report["summary"])
             return 0 if report["passed"] == len(report["results"]) else 1
 

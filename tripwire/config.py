@@ -22,7 +22,7 @@ KNOWN_PARSERS = {
 }
 
 KNOWN_TYPES = {"rss", "json", "html", "ws", "telegram", "market", "safecast"}
-KNOWN_THEATERS = {"EU_RU", "ISRAEL", "GULF", "PANDEMIC", "NATURE", "MARKETS"}
+KNOWN_THEATERS = {"EU_RU", "ISRAEL", "GULF", "MENA", "PANDEMIC", "NATURE", "MARKETS"}
 
 
 class ConfigError(RuntimeError):

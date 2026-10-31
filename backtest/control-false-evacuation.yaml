@@ -1,0 +1,45 @@
+# Контроль ложных §15: опровергнутые сообщения об эвакуации посольства.
+# Именно такие публикации не должны поднимать TW-EU-ORDERED-DEPARTURE.
+id: control-false-evacuation
+name: "Контроль: ложные сообщения об эвакуации"
+expect: WATCH
+control: true
+observation_min: 43200
+provenance: >-
+  Реконструкция типового цикла «слух — опровержение» (ноябрь 2022): заголовки
+  содержат слова об эвакуации, но отрицают её; формулировки приведены к
+  официальным опровержениям Госдепа.
+events:
+  - at: "2022-11-10T12:00:00Z"
+    source: ria_rss
+    title: "США опровергли сообщения о приказе об эвакуации посольства в Киеве"
+    body: >-
+      Госдепартамент опроверг слухи о предписанном выезде сотрудников посольства
+      в Киеве. Представитель ведомства заявил, что сообщения не соответствуют
+      действительности, посольство продолжает работу в обычном режиме.
+    theater: EU_RU
+    country: UA
+    url: "https://ria.ru/20221110/embassy.html"
+    origin_domain: ria.ru
+  - at: "2022-11-10T13:00:00Z"
+    source: state_travel_rss
+    tier0: true
+    title: "State Department: reports of authorized departure from Kyiv embassy are false"
+    body: >-
+      The Department denies reports of an ordered departure or authorized departure
+      of embassy staff from Kyiv. The embassy remains open. No evacuation has been
+      announced and there are no plans for one.
+    theater: EU_RU
+    country: UA
+    url: "https://travel.state.gov/content/travel/en/traveladvisories/kyiv-denial.html"
+    origin_domain: travel.state.gov
+  - at: "2022-11-10T15:00:00Z"
+    source: gnews_consilium
+    title: "EU: no evidence of diplomatic evacuation from Kyiv"
+    body: >-
+      EU officials said there is no evidence to support reports of a diplomatic
+      evacuation from Kyiv and dismissed the claims as unconfirmed.
+    theater: EU_RU
+    country: UA
+    url: "https://www.consilium.europa.eu/en/press/kyiv-no-evidence/"
+    origin_domain: consilium.europa.eu

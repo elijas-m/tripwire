@@ -2,6 +2,7 @@
 id: 2020-03-11-pandemic
 name: "11.03.2020 — ВОЗ объявила пандемию"
 expect: CRITICAL
+truth_at: "2020-03-11T16:00:00Z"
 provenance: >-
   Дословная цитата из вступительного слова Генерального директора ВОЗ на брифинге
   11.03.2020: "We have therefore made the assessment that COVID-19 can be

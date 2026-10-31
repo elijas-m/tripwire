@@ -7,6 +7,22 @@ from typing import Any
 
 from ..models import Event, ScoreResult
 
+# Escalation words inside a denial sentence ("US denies reports of an ordered
+# departure") are the opposite signal and must not add score.
+_DENIAL = re.compile(
+    r"\b(?:denied|denies|deny|dismissed|dismisses|refuted|refutes|denial|"
+    r"rumou?rs?|hoax|unconfirmed|not\s+true|no\s+evidence|no\s+plans?|ruled\s+out)\b"
+    r"|\breports?\b[^.!?\n]{0,80}\b(?:are|is|was|were)\s+false\b"
+    r"|(?:опроверг|опроверга|слух|не\s+подтверд|дезинформац|фейк|не\s+планир)",
+    re.I,
+)
+_SENTENCE = re.compile(r"[^.!?\n]+")
+
+
+def _denied_ranges(text: str) -> list[tuple[int, int]]:
+    return [(match.start(), match.end()) for match in _SENTENCE.finditer(text)
+            if _DENIAL.search(match.group(0))]
+
 
 def _term_pattern(term: str) -> re.Pattern[str] | None:
     term = term.strip().lower()
@@ -81,10 +97,13 @@ class LexiconEngine:
 
     def score(self, event: Event, geo_factor: float, novelty_factor: float) -> ScoreResult:
         text = f"{event.title} {event.body_excerpt[:700]}".lower().replace("ё", "е")
+        denied = _denied_ranges(text)
         matches: list[tuple[float, str]] = []
         for _lang, weight, word, pattern in self.terms:
-            if pattern.search(text):
-                matches.append((weight, word))
+            for match in pattern.finditer(text):
+                if not any(start <= match.start() < end for start, end in denied):
+                    matches.append((weight, word))
+                    break
 
         base = 0.0
         if matches:

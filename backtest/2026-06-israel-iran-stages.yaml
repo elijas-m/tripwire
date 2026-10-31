@@ -1,0 +1,167 @@
+# Этапы американо-израильско-иранского конфликта 2026 года.
+# Проверяет не только обнаружение, но и поведение на деэскалации:
+# перемирие и сообщения о возможном возобновлении не должны давать новых карточек,
+# а подтверждённое возобновление операций — должно снова дать CRITICAL.
+id: 2026-06-israel-iran-stages
+name: "2026 — этапы конфликта США/Израиль/Иран"
+expect: CRITICAL
+truth_at: "2026-06-05T02:00:00Z"
+max_delay_min: 30
+provenance: >-
+  Учебный сценарий-реконструкция (не историческое событие): этапы эскалации,
+  перемирия, слухов о возобновлении и подтверждённого возобновления операций.
+  Формулировки приведены к типовым официальным заявлениям IDT/IDF, МИД Израиля,
+  МАГАТЭ и DoD; даты условные.
+stages:
+  - id: escalation
+    start: "2026-06-05T00:00:00Z"
+    end: "2026-06-06T00:00:00Z"
+    expect: CRITICAL
+    truth_at: "2026-06-05T02:00:00Z"
+    max_delay_min: 30
+  - id: deescalation
+    start: "2026-06-11T00:00:00Z"
+    end: "2026-06-25T00:00:00Z"
+    max_level: WATCH
+  - id: resumption-rumor
+    start: "2026-06-25T00:00:00Z"
+    end: "2026-07-07T00:00:00Z"
+    max_level: WATCH
+  - id: resumption-confirmed
+    start: "2026-07-07T00:00:00Z"
+    end: "2026-07-10T00:00:00Z"
+    expect: CRITICAL
+    truth_at: "2026-07-08T01:30:00Z"
+    max_delay_min: 30
+events:
+  # ---------- stage 1: escalation ----------
+  - at: "2026-06-05T02:00:00Z"
+    source: idf_tg
+    tier0: true
+    title: "The IDF struck Iranian nuclear facilities and ballistic missile sites overnight"
+    body: >-
+      The Israel Defense Forces confirm that fighter jets struck nuclear facilities
+      and ballistic missile production sites in Iran. The operation is ongoing and
+      the Home Front Command has issued updated instructions.
+    category: israel
+    theater: ISRAEL
+    url: "https://t.me/idfonline/2026-06-05-strikes"
+    origin_domain: t.me
+  - at: "2026-06-05T02:02:00Z"
+    source: israel_mfa_tg
+    title: "Israel confirms strikes on Iranian nuclear facilities"
+    body: >-
+      The Ministry of Foreign Affairs confirms that Israel struck Iranian nuclear
+      facilities in response to intelligence about an imminent weapons programme.
+    category: israel
+    theater: ISRAEL
+    url: "https://t.me/israel_mfa/2026-06-05"
+    origin_domain: t.me
+  - at: "2026-06-05T02:10:00Z"
+    source: gnews_toi
+    title: "Israel strikes Iran: explosions reported at nuclear sites"
+    body: >-
+      Explosions were reported at several Iranian nuclear sites after Israeli
+      aircraft struck the facilities. Iran promised to respond.
+    category: israel
+    theater: ISRAEL
+    country: IR
+    url: "https://www.timesofisrael.com/2026-israel-strikes-iran/"
+    origin_domain: timesofisrael.com
+  # ---------- stage 2: de-escalation ----------
+  - at: "2026-06-11T09:00:00Z"
+    source: israel_mfa_tg
+    title: "Ceasefire with Iran enters into force; Israel stands down"
+    body: >-
+      A ceasefire brokered by the United States entered into force overnight.
+      Israel has stopped its operations and the Home Front Command has relaxed
+      restrictions across the country.
+    theater: ISRAEL
+    url: "https://t.me/israel_mfa/2026-06-11-ceasefire"
+    origin_domain: t.me
+  - at: "2026-06-12T10:00:00Z"
+    source: gnews_iaea
+    tier0: true
+    title: "IAEA inspectors to return to Iran under ceasefire agreement"
+    body: >-
+      The IAEA says inspectors will return to Iranian facilities under the
+      ceasefire agreement and that talks on verification are continuing.
+    theater: ISRAEL
+    country: IR
+    url: "https://www.iaea.org/newscenter/pressreleases/2026-inspectors-return"
+    origin_domain: iaea.org
+  - at: "2026-06-20T12:00:00Z"
+    source: dod_rss
+    tier0: true
+    title: "US: ceasefire holding, talks resume in Geneva"
+    body: >-
+      The Department of Defense says the ceasefire is holding and that diplomatic
+      talks will resume in Geneva. No new military operations are planned.
+    theater: ISRAEL
+    url: "https://www.defense.gov/releases/2026-ceasefire-geneva/"
+    origin_domain: defense.gov
+  # ---------- stage 3: reports of a possible resumption ----------
+  - at: "2026-06-25T14:00:00Z"
+    source: gnews_toi
+    title: "Report: Israel could resume strikes in Iran if talks stall"
+    body: >-
+      Officials speaking anonymously said Israel could resume strikes in Iran if
+      the Geneva talks stall, but no decision has been taken.
+    theater: ISRAEL
+    country: IR
+    url: "https://www.timesofisrael.com/2026-could-resume-strikes/"
+    origin_domain: timesofisrael.com
+  - at: "2026-06-30T09:00:00Z"
+    source: gnews_jpost
+    title: "Officials say Israel may renew operations against Iran within weeks"
+    body: >-
+      Unnamed officials say Israel may renew operations against Iran within weeks
+      if verification fails. The government declined to confirm any plans.
+    theater: ISRAEL
+    country: IR
+    url: "https://www.jpost.com/2026-may-renew-operations"
+    origin_domain: jpost.com
+  - at: "2026-07-05T16:00:00Z"
+    source: gnews_iaea
+    tier0: true
+    title: "IAEA: no evidence of renewed enrichment at Iranian sites"
+    body: >-
+      The IAEA says there is no evidence of renewed enrichment at the inspected
+      Iranian sites and that verification continues.
+    theater: ISRAEL
+    country: IR
+    url: "https://www.iaea.org/newscenter/pressreleases/2026-no-evidence"
+    origin_domain: iaea.org
+  # ---------- stage 4: confirmed resumption ----------
+  - at: "2026-07-08T01:30:00Z"
+    source: idf_tg
+    tier0: true
+    title: "The IDF struck Iranian missile production facilities in a renewed operation"
+    body: >-
+      The Israel Defense Forces confirm that aircraft struck Iranian missile
+      production facilities after talks collapsed. The operation is ongoing.
+    category: israel
+    theater: ISRAEL
+    url: "https://t.me/idfonline/2026-07-08-renewed-strikes"
+    origin_domain: t.me
+  - at: "2026-07-08T01:32:00Z"
+    source: israel_mfa_tg
+    title: "Israel confirms renewed strikes against Iran"
+    body: >-
+      The Ministry of Foreign Affairs confirms renewed strikes against Iran after
+      the collapse of talks.
+    category: israel
+    theater: ISRAEL
+    url: "https://t.me/israel_mfa/2026-07-08"
+    origin_domain: t.me
+  - at: "2026-07-08T01:40:00Z"
+    source: gnews_jpost
+    title: "Israel strikes Iran again after talks collapse"
+    body: >-
+      Israeli aircraft struck targets in Iran again after negotiations collapsed,
+      according to officials.
+    category: israel
+    theater: ISRAEL
+    country: IR
+    url: "https://www.jpost.com/2026-strikes-again"
+    origin_domain: jpost.com

@@ -207,6 +207,9 @@ class TripwireHit:
     why: str
     one_liner: str
     payload: dict[str, Any] = field(default_factory=dict)
+    theater: str | None = None
+    confirmed: bool = True
+    confirm_reason: str = ""
 
 
 @dataclass(slots=True)

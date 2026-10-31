@@ -18,7 +18,7 @@ tripwires:
     regex: >-
       (?is)(\barticle\s*(5|five)\b.{0,100}\b(invok|trigger|activat|appl)\w*|\b(invok|trigger|activat)\w*.{0,100}\barticle\s*(5|five)\b)
     negate_regex: '(?i)(exercise|drill|simulation|war ?game|scenario|anniversary|hypothetical|учени|тренировк|сценарий)'
-    why: "Статья 5 Вашингтонского договора — коллективная оборона НАТО. Это война блока."
+    why: "Задействована Статья 5 Вашингтонского договора. Это запускает коллективные консультации и помощь союзников, но не означает автоматического вступления всех стран в боевые действия."
     one_liner: "НАТО задействует Статью 5"
 
   - id: TW-EU-ART4
@@ -89,8 +89,8 @@ tripwires:
     regex: >-
       (?is)\b(struck|attacked|hit|shelled|bombed|missile strike|drone attack|нанес\w* удар|атакова\w*|обстрел\w*|удар\w*)
     max_tier: 1
-    why: "Подтверждённый удар по территории страны НАТО с жертвами — casus foederis."
-    one_liner: "Удар по территории страны НАТО"
+    why: "Сообщается об ударе по территории страны НАТО с жертвами. Ожидается официальная оценка обстоятельств; система не делает вывод о casus foederis."
+    one_liner: "Сообщение об ударе по территории страны НАТО"
 
   - id: TW-EU-INVASION
     type: regex
@@ -123,6 +123,7 @@ tripwires:
     handler: oref_nationwide_directive
     theater: ISRAEL
     level: CRITICAL
+    confirm: immediate_civil
     cooldown_min: 180
     why: "Общенациональные указания тыла («только необходимая деятельность», закрытие школ) — переход к войне."
     one_liner: "Общенациональные указания тыла Израиля"
@@ -132,10 +133,11 @@ tripwires:
     handler: oref_polygon_share
     theater: ISRAEL
     level: CRITICAL
+    confirm: immediate_civil
     cooldown_min: 30
     min_share: 0.25
     window_min: 10
-    why: "Тревоги одновременно в ≥25% районов Израиля — массированный удар или наземная фаза."
+    why: "Тревоги одновременно в ≥25% районов Израиля — оперативное событие гражданской обороны (массовые сирены), а не доказательство наземной фазы."
     one_liner: "Массовые тревоги по Израилю"
 
   - id: TW-IL-GROUND-OP
@@ -149,7 +151,7 @@ tripwires:
       (?is)(\b(ground (operation|offensive|invasion|incursion)|наземн\w+ (операц|наступлен|вторжен)|מבצע קרקעי|פלישה קרקעית)\b)
       .{0,160}
       (\b(iran|lebanon|hezbollah|gaza|syria|yemen|иран|ливан|хизбалл|газа|сирия|йемен)\b)
-    negate_regex: '(?i)(exercise|drill|simulation|scenario|anniversary|учени|тренировк|сценарий)'
+    negate_regex: '(?i)(exercise|drill|simulation|scenario|anniversary|учени|тренировк|сценарий|may|could|might|planned|planning|plans to|considering|обсужда|возможн|планир|якобы)'
     why: "Официально объявленная наземная операция в регионе — эскалация до региональной войны."
     one_liner: "Объявлена наземная операция"
 
@@ -163,7 +165,7 @@ tripwires:
       (?is)(\b(israel|idf|израил|צה"ל)\b.{0,120}\b(struck|attacked|hit|нанес\w* удар|атакова\w*|תקף)\b.{0,120}\b(iran|iranian|иран|איראן)\b)
       |
       (\b(iran|iranian|иран|איראן)\b.{0,120}\b(struck|attacked|hit|нанес\w* удар|атакова\w*|תקף)\b.{0,120}\b(israel|израил|ישראל)\b)
-    negate_regex: '(?i)(exercise|drill|simulation|scenario|учени|тренировк|сценарий|threaten|угрожа|could|may)'
+    negate_regex: '(?i)(exercise|drill|simulation|scenario|учени|тренировк|сценарий|threaten|угрожа|reportedly|claims?|could|may|might)'
     why: "Взаимные удары Израиль↔Иран — переход к региональной войне."
     one_liner: "Удар Израиля по Ирану или Ирана по Израилю"
 
@@ -254,6 +256,7 @@ tripwires:
     type: numeric
     theater: NATURE
     level: CRITICAL
+    confirm: immediate_civil
     cooldown_min: 60
     domain: earthquake
     expr: "alert == 'red'"
@@ -274,6 +277,7 @@ tripwires:
     type: numeric
     theater: NATURE
     level: CRITICAL
+    confirm: immediate_civil
     cooldown_min: 60
     domain: earthquake
     expr: "mag >= 7.5"
@@ -284,6 +288,7 @@ tripwires:
     type: numeric
     theater: NATURE
     level: CRITICAL
+    confirm: immediate_civil
     cooldown_min: 60
     domain: earthquake
     expr: "mag >= 6.8 and depth < 70 and population_100km >= 1000000"
@@ -294,6 +299,7 @@ tripwires:
     type: regex
     theater: NATURE
     level: CRITICAL
+    confirm: immediate_civil
     cooldown_min: 60
     domain: tsunami
     source_ids: [noaa_ptwc_atom, noaa_ntwc_atom]
@@ -307,6 +313,7 @@ tripwires:
     type: numeric
     theater: NATURE
     level: CRITICAL
+    confirm: immediate_civil
     cooldown_min: 120
     domain: volcano
     expr: "colour_code == 'red' or alert_level == 'warning'"
@@ -318,6 +325,7 @@ tripwires:
     handler: volcano_high_consequence
     theater: NATURE
     level: CRITICAL
+    confirm: immediate_civil
     cooldown_min: 120
     why: "Orange/Red на вулкане из списка high-consequence — угроза крупного населения."
     one_liner: "High-consequence вулкан: повышенный код"
@@ -326,6 +334,7 @@ tripwires:
     type: numeric
     theater: NATURE
     level: CRITICAL
+    confirm: immediate_civil
     cooldown_min: 120
     domain: volcano
     expr: "ash_ft >= 45000"
@@ -346,6 +355,7 @@ tripwires:
     type: numeric
     theater: NATURE
     level: CRITICAL
+    confirm: immediate_civil
     cooldown_min: 240
     domain: volcano
     expr: "vei >= 4"
@@ -356,6 +366,7 @@ tripwires:
     type: regex
     theater: NATURE
     level: CRITICAL
+    confirm: immediate_civil
     cooldown_min: 240
     max_tier: 1
     domain: volcano

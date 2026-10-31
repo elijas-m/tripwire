@@ -10,12 +10,11 @@ from __future__ import annotations
 
 import logging
 import re
-import time
 from datetime import datetime
 from typing import Any
 
 from .telegram_api import esc
-from .util import UTC
+from .util import UTC, now_ts as clock_ts
 
 log = logging.getLogger(__name__)
 
@@ -84,7 +83,7 @@ def is_diplomatic_evacuation(title: str, now_year: int | None = None) -> bool:
         return False
     if _DENIAL.search(text):
         return False
-    year = now_year or datetime.now(UTC).year
+    year = now_year or datetime.fromtimestamp(clock_ts(), UTC).year
     years = [int(item) for item in _YEAR.findall(text)]
     return not years or any(item >= year for item in years)
 
@@ -102,7 +101,7 @@ def summarize(
     now_ts: int | None = None,
 ) -> dict[str, Any]:
     th = _settings(settings)
-    now_ts = int(now_ts or time.time())
+    now_ts = int(now_ts or clock_ts())
     now_year = datetime.fromtimestamp(now_ts, UTC).year
     since = now_ts - int(th["window_hours"] * 3600)
     country_since = now_ts - int(th["country_window_hours"] * 3600)
@@ -165,7 +164,7 @@ async def compute_diplo_evac(
     now_ts: int | None = None,
 ) -> dict[str, Any]:
     th = _settings(settings)
-    now_ts = int(now_ts or time.time())
+    now_ts = int(now_ts or clock_ts())
     since = now_ts - int(th["window_hours"] * 3600)
     rows = await db.fetchall(
         """SELECT id, cluster_id, title, country, theater, url, status,

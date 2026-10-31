@@ -23,6 +23,7 @@ THEATER_ALIASES = {
     "eu_ru": "EU_RU", "eu": "EU_RU", "европа": "EU_RU", "россия": "EU_RU",
     "israel": "ISRAEL", "il": "ISRAEL", "израиль": "ISRAEL",
     "gulf": "GULF", "залив": "GULF",
+    "mena": "MENA", "турция": "MENA", "ближний восток": "MENA",
     "pandemic": "PANDEMIC", "health": "PANDEMIC", "здоровье": "PANDEMIC",
     "nature": "NATURE", "природа": "NATURE",
     "markets": "MARKETS", "рынки": "MARKETS",

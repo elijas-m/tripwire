@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS clusters (
     sources_count INTEGER DEFAULT 0,
     tiers_bitmap INTEGER DEFAULT 0,
     total_score REAL DEFAULT 0,
+    score_initial REAL,
     level INTEGER DEFAULT 0,
     tg_message_id INTEGER,
     tg_thread_id INTEGER,
@@ -233,6 +234,9 @@ class DB:
             )
         await self._add_column("events", "recorded_at", "INTEGER")
         await self._add_column("alerts", "decided_at", "INTEGER")
+        # Calibration anchor: the theater score after the cluster's first scored
+        # event. Final total_score keeps growing, which would leak the future.
+        await self._add_column("clusters", "score_initial", "REAL")
         await self.conn.execute(
             "UPDATE events SET recorded_at=ingested_at WHERE recorded_at IS NULL"
         )
@@ -493,7 +497,9 @@ class DB:
             title_canonical=row["title_canonical"] or "",
             first_seen=from_ts(row["first_seen"]), last_seen=from_ts(row["last_seen"]),
             sources_count=row["sources_count"] or 0, tiers_bitmap=row["tiers_bitmap"] or 0,
-            total_score=row["total_score"] or 0.0, level=row["level"] or 0,
+            total_score=row["total_score"] or 0.0,
+            score_initial=(row["score_initial"] if "score_initial" in row.keys() else None),
+            level=row["level"] or 0,
             tg_message_id=row["tg_message_id"], tg_thread_id=row["tg_thread_id"],
             state=row["state"] or "open", country=row["country"], lat=row["lat"], lon=row["lon"],
             last_alert_at=from_ts(row["last_alert_at"]), ack_at=from_ts(row["ack_at"]),
@@ -524,6 +530,14 @@ class DB:
                 cluster.title_canonical, cluster.id,
             ),
         )
+
+    async def set_cluster_initial_score(self, cluster_id: int, score: float) -> bool:
+        """Freeze the score seen on the first event; later events must not move it."""
+        cur = await self.execute(
+            "UPDATE clusters SET score_initial=? WHERE id=? AND score_initial IS NULL",
+            (round(float(score), 3), cluster_id),
+        )
+        return cur.rowcount > 0
 
     async def add_cluster_source(self, cluster_id: int, source_id: str) -> bool:
         now = now_ts()

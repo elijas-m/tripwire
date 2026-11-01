@@ -453,8 +453,37 @@ cd /opt/tripwire
 - прохождение этапов составного сценария, включая деэскалацию.
 
 `--backtest-json` выгружает сценарии, шаги и метрики для накопления корпуса.
-Brier score и диаграммы калибровки по горизонтам отложены: для них нужен
-размеченный корпус прогнозов, которого пока нет.
+Brier score по горизонтам считается по размеченному корпусу, когда он накоплен:
+
+```
+python -m tripwire --export-labels --labels-out backtest/labels/m2/2026-11-04 \
+  --labels-since-days 365 --labels-negatives 15 --labels-precursor 30 \
+  --labels-near-miss 50 --labels-require-anchor --labels-min-age-hours 72 \
+  --labels-exclude backtest/labels/m2
+python -m tripwire --merge-labels --labels-merge-root backtest/labels/m2 \
+  --labels-merge-out backtest/labels/m2/aggregate
+python -m tripwire --calibrate-labels \
+  --calibration-dir backtest/labels/m2/aggregate \
+  --calibration-json backtest/labels/m2/aggregate/calibration.json
+```
+
+`--labels-require-anchor` оставляет только эпизоды с зафиксированным
+`score_initial` (с 31.10.2026), `--labels-min-age-hours 72` — только закрытые
+горизонты. Каждый недельный раунд пишется в каталог с датой; в тот же каталог
+повторно не пишем, а `--labels-exclude` держит реестр завершённых меток
+(`labels.jsonl` с заполненным `case_type`), поэтому один кластер даёт одну
+метку. `--merge-labels` склеивает раунды, применяет `supersedes` и дедуплицирует
+`sealed.jsonl` в `aggregate/`. Экспорт пишет и `labels.template.jsonl` —
+заготовки с `label_id = L<YYYY-MM>-<cluster_id>`. Схема меток — v2: субъект на
+уровне эпизода, tier 2 для кинетики, временные метки открытых окон
+(`backtest/labels/schema.md`).
+
+Прогноз привязан к баллу на якоре (`clusters.score_initial`, первый scored
+эпизод), исход — к `first_seen`; эпизоды без якорного балла в калибровку не
+идут. Isotonic — основная модель, Platt — справочная; 60/40 train/test по
+времени, 95% CI bootstrap по кластерам и дням. Brier и skill публикуются
+только при ≥100 эпизодах и ≥20 позитивах на горизонт, иначе печатается
+«недостаточно данных».
 
 При ошибке печатается пошаговый дамп: время, источник, заголовок, действие и
 достигнутый уровень.

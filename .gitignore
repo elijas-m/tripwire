@@ -17,6 +17,9 @@ var/
 backups/
 .smoke/
 
+# Blind-label exports: scores stay local until annotation is frozen
+backtest/labels/**/sealed.jsonl
+
 # Caches and virtualenvs
 __pycache__/
 *.py[cod]

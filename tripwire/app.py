@@ -347,6 +347,18 @@ class TripwireApp:
             old_score=float(previous.score or 0.0), force_edit=True,
         )
 
+    async def _capture_initial_score(self, cluster: Cluster, score: float) -> None:
+        """Anchor score for calibration: set once on the cluster's first event."""
+        if cluster is None or cluster.id is None or cluster.score_initial is not None:
+            return
+        # A pre-existing cluster must not anchor at a later event.
+        count = await self.db.fetchone(
+            "SELECT COUNT(*) AS n FROM events WHERE cluster_id=?", (cluster.id,))
+        if count is None or int(count["n"]) != 1:
+            return
+        if await self.db.set_cluster_initial_score(cluster.id, score):
+            cluster.score_initial = round(float(score), 3)
+
     async def _score_and_alert(
         self, event: Event, cluster: Cluster, event_id: int, novelty: float,
         old_score: float | None = None, force_edit: bool = False,
@@ -366,6 +378,8 @@ class TripwireApp:
 
         if domain_result is not None and domain_result.dropped and tripwire is None:
             await self.db.update_event_scoring(event_id, 0.0, L0, rules, status="dropped")
+            if old_score is None:
+                await self._capture_initial_score(cluster, 0.0)
             self.stats["dropped"] += 1
             return {"kind": "dropped", "reason": domain_result.drop_reason}
 
@@ -388,6 +402,8 @@ class TripwireApp:
 
         if tripwire is None and (result.dropped or result.score <= 0):
             await self.db.update_event_scoring(event_id, 0.0, L0, rules, status="zero")
+            if old_score is None:
+                await self._capture_initial_score(cluster, 0.0)
             self.stats["zero"] += 1
             return {"kind": "zero"}
 
@@ -400,6 +416,8 @@ class TripwireApp:
         event.score = result.score
         event.level = decision.cluster_level
         await self.db.update_event_scoring(event_id, result.score, decision.cluster_level, rules)
+        if old_score is None:
+            await self._capture_initial_score(cluster, decision.score)
         cluster.total_score = decision.score
         cluster.level = max(cluster.level, decision.cluster_level)
         if tripwire is not None:

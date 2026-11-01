@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import logging
 import os
 import signal
@@ -41,6 +42,52 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--backtest-dir", default="", help="scenario directory override")
     parser.add_argument("--backtest-json", default="",
                         help="write the point-in-time backtest report as JSON")
+    parser.add_argument("--export-labels", action="store_true",
+                        help="export blind labeling candidates from the database and exit")
+    parser.add_argument("--labels-out", default="backtest/labels/pilot",
+                        help="directory for candidates.jsonl, sealed.jsonl and manifest.json")
+    parser.add_argument("--labels-since-days", type=int, default=30,
+                        help="only clusters first seen within this many days")
+    parser.add_argument("--labels-negatives", type=int, default=0,
+                        help="random negative candidates per theater")
+    parser.add_argument("--labels-precursor", type=int, default=0,
+                        help="cap precursor-source candidates across all theaters")
+    parser.add_argument("--labels-near-miss", type=int, default=50,
+                        help="cap near-miss candidates across all theaters")
+    parser.add_argument("--labels-alert-cap", type=int, default=0,
+                        help="cap alert candidates per theater (0 = all)")
+    parser.add_argument("--labels-seed", default="tripwire",
+                        help="seed for deterministic negative sampling")
+    parser.add_argument("--labels-min-age-hours", type=float, default=0.0,
+                        help="only export episodes at least this many hours old")
+    parser.add_argument("--labels-require-anchor", action="store_true",
+                        help="only export clusters with a frozen score_initial")
+    parser.add_argument("--labels-exclude", action="append", default=[],
+                        help="file or directory with completed labels to skip")
+    parser.add_argument("--labels-force", action="store_true",
+                        help="overwrite an existing export directory")
+    parser.add_argument("--merge-labels", action="store_true",
+                        help="merge dated label rounds into one calibration pair and exit")
+    parser.add_argument("--labels-merge-root", default="backtest/labels/m2",
+                        help="root with dated label rounds")
+    parser.add_argument("--labels-merge-out", default="",
+                        help="merged output directory (default: <root>/aggregate)")
+    parser.add_argument("--calibrate-labels", action="store_true",
+                        help="compute Brier calibration from labels and sealed scores and exit")
+    parser.add_argument("--calibration-dir", default="backtest/labels/pilot",
+                        help="directory with labels.jsonl and sealed.jsonl")
+    parser.add_argument("--calibration-labels", default="labels.jsonl",
+                        help="label file name inside the calibration directory")
+    parser.add_argument("--calibration-sealed", default="sealed.jsonl",
+                        help="sealed score file name inside the calibration directory")
+    parser.add_argument("--calibration-min-records", type=int, default=100,
+                        help="minimum episodes per horizon before publishing Brier")
+    parser.add_argument("--calibration-min-positives", type=int, default=20,
+                        help="minimum positives per horizon before publishing Brier")
+    parser.add_argument("--calibration-bootstrap", type=int, default=1000,
+                        help="bootstrap iterations for confidence intervals")
+    parser.add_argument("--calibration-json", default="",
+                        help="write the calibration report as JSON")
     parser.add_argument("--config-root", default="", help="project root (default: package parent)")
     parser.add_argument("--log-level", default="", help="override log level")
     return parser.parse_args(argv)
@@ -55,6 +102,84 @@ async def amain(args: argparse.Namespace) -> int:
         for source in cfg.enabled_sources():
             print(f"{source.id:26} tier={source.tier} {source.interval_s:>5}s "
                   f"{source.theater:9} {source.type:8} {source.name}")
+        return 0
+
+    if args.export_labels:
+        from .db import DB
+        from .labels import export_label_candidates
+
+        db_path = cfg.data_dir() / "tripwire.db"
+        if not db_path.exists():
+            log.error("label export: database not found at %s", db_path)
+            return 2
+        db = DB(db_path)
+        await db.open()
+        try:
+            result = await export_label_candidates(
+                db, Path(args.labels_out),
+                since_days=args.labels_since_days,
+                negatives_per_theater=args.labels_negatives,
+                precursor_cap=args.labels_precursor,
+                near_miss_cap=args.labels_near_miss,
+                alert_cap=args.labels_alert_cap,
+                seed=args.labels_seed,
+                min_age_hours=args.labels_min_age_hours,
+                require_anchor=args.labels_require_anchor,
+                exclude_paths=args.labels_exclude,
+                force=args.labels_force,
+            )
+        except (FileExistsError, FileNotFoundError, ValueError) as exc:
+            log.error("label export: %s", exc)
+            return 2
+        finally:
+            await db.close()
+        print(f"label export: {result['counts']} -> {result['out']}")
+        return 0
+
+    if args.merge_labels:
+        from .labels import merge_label_rounds
+
+        root = Path(args.labels_merge_root)
+        out = Path(args.labels_merge_out) if args.labels_merge_out else root / "aggregate"
+        try:
+            result = merge_label_rounds(root, out)
+        except (FileNotFoundError, ValueError) as exc:
+            log.error("label merge: %s", exc)
+            return 2
+        print(
+            f"Слияние меток: раундов {len(result['rounds'])}, "
+            f"меток {result['labels']} из {result['labels_raw']}, "
+            f"sealed {result['sealed']}, "
+            f"конфликтов меток {result['conflicting_labels']}, "
+            f"конфликтов sealed {result['conflicting_sealed']} -> {result['out']}"
+        )
+        return 0
+
+    if args.calibrate_labels:
+        from .calibration import calibrate_files, format_report
+
+        directory = Path(args.calibration_dir)
+        labels_path = directory / args.calibration_labels
+        sealed_path = directory / args.calibration_sealed
+        try:
+            report = calibrate_files(
+                labels_path, sealed_path,
+                min_records=args.calibration_min_records,
+                min_positives=args.calibration_min_positives,
+                bootstrap=args.calibration_bootstrap,
+            )
+        except FileNotFoundError as exc:
+            log.error("calibration: %s", exc)
+            return 2
+        except ValueError as exc:
+            log.error("calibration: %s", exc)
+            return 2
+        print(format_report(report))
+        if args.calibration_json:
+            out = Path(args.calibration_json)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+                           encoding="utf-8")
         return 0
 
     # One-shot CLI modes must not start a second getUpdates long-poll: while the

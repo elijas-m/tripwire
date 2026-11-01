@@ -191,6 +191,7 @@ class Cluster:
     sources_count: int = 0
     tiers_bitmap: int = 0
     total_score: float = 0.0
+    score_initial: float | None = None
     level: int = L0
     tg_message_id: int | None = None
     tg_thread_id: int | None = None

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-31T22:53:11Z",
+  "since_days": 30,
+  "theaters": [
+    "EU_RU",
+    "ISRAEL",
+    "GULF",
+    "MENA"
+  ],
+  "seed": "tripwire",
+  "near_miss_range": [
+    4.0,
+    8.0
+  ],
+  "counts": {
+    "alert": 2,
+    "near_miss": 9,
+    "random": 9
+  },
+  "candidates": 20
+}

@@ -32,3 +32,7 @@ probe/
 docs/
 ТЗ_Tripwire.txt
 .scan_secrets.py
+
+# Local working notes (permanent local copies, never published)
+Критика,md.txt
+Рекомендации.md

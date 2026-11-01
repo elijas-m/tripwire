@@ -127,6 +127,34 @@ class LexiconTests(unittest.TestCase):
         self.assertTrue(result.dropped)
         self.assertEqual(result.drop_reason, "research_article")
 
+    def test_routine_governance_meeting_dropped(self) -> None:
+        result = self.engine.score(event(
+            "Ninth meeting of the Intergovernmental Working Group (IGWG) on the "
+            "WHO Pandemic Agreement",
+            tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertTrue(result.dropped)
+        self.assertEqual(result.drop_reason, "procedural_meeting")
+
+    def test_russian_governance_meeting_dropped(self) -> None:
+        result = self.engine.score(event(
+            "Девятое совещание Межправительственной рабочей группы по Соглашению "
+            "ВОЗ по борьбе с пандемией",
+            tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertTrue(result.dropped)
+        self.assertEqual(result.drop_reason, "procedural_meeting")
+
+    def test_emergency_committee_meeting_is_not_routine(self) -> None:
+        result = self.engine.score(event(
+            "WHO Emergency Committee meeting on the mpox outbreak",
+            tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertFalse(result.dropped)
+
+    def test_ordinary_outbreak_bulletin_is_not_a_meeting(self) -> None:
+        result = self.engine.score(event(
+            "Measles outbreak: 40 confirmed cases reported in England",
+            tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertFalse(result.dropped)
+
     def test_factors_multiply_score(self) -> None:
         result = self.engine.score(event("Russia struck the capital with a massive strike"),
                                    geo_factor=0.3, novelty_factor=0.4)

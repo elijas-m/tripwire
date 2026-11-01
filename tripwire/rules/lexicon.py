@@ -76,6 +76,20 @@ class LexiconEngine:
                 if pattern:
                     self.research_headlines.append(pattern)
 
+        self.procedural_headlines: list[re.Pattern[str]] = []
+        for words in (cfg.lexicon.get("procedural_headlines") or {}).values():
+            for word in words:
+                pattern = _term_pattern(word)
+                if pattern:
+                    self.procedural_headlines.append(pattern)
+
+        self.procedural_exceptions: list[re.Pattern[str]] = []
+        for words in (cfg.lexicon.get("procedural_exceptions") or {}).values():
+            for word in words:
+                pattern = _term_pattern(word)
+                if pattern:
+                    self.procedural_exceptions.append(pattern)
+
         self.negatives: list[re.Pattern[str]] = []
         for words in (cfg.lexicon.get("negative") or {}).values():
             for word in words:
@@ -126,6 +140,12 @@ class LexiconEngine:
             return ScoreResult(score=0.0, base=base, matched=matched_terms,
                                factors={"geo": geo_factor, "novelty": novelty_factor},
                                dropped=True, drop_reason="research_article")
+
+        if (any(p.search(title) for p in self.procedural_headlines)
+                and not any(p.search(title) for p in self.procedural_exceptions)):
+            return ScoreResult(score=0.0, base=base, matched=matched_terms,
+                               factors={"geo": geo_factor, "novelty": novelty_factor},
+                               dropped=True, drop_reason="procedural_meeting")
 
         if negative and not has_fact and tier > 0:
             return ScoreResult(score=0.0, base=base, matched=matched_terms,

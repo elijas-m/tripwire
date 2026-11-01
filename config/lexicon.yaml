@@ -299,6 +299,34 @@ research_headlines:
     - 're:\bпрепринт\w*\b'
     - 're:\bрецензируем\w*\b'
 
+# Routine governance meetings (working groups, committee sessions, assemblies)
+# are procedure, not an incident. Matched against the title only, at any tier;
+# tripwires and domain rules still bypass. Emergency/extraordinary meetings are
+# restored by procedural_exceptions.
+procedural_headlines:
+  en:
+    - 're:\b(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|\d{1,2}(?:st|nd|rd|th))\s+(?:meeting|session)\b'
+    - 're:\bintergovernmental\s+(?:working|negotiating)\s+group\b'
+    - 're:\bworking\s+group\s+(?:on|for)\b'
+    - 're:\b(?:meeting|session)\s+of\s+(?:the\s+)?(?:\w+\s+){0,4}(?:committee|group|assembly|council|board|panel|commission)\b'
+    - 're:\b(?:governing\s+body|executive\s+board|world\s+health\s+assembly|regional\s+committee)\b'
+    - 're:\bconference\s+of\s+the\s+parties\b'
+    - 're:\bplenary\s+(?:session|meeting)\b'
+    - 're:\b(?:convenes|holds|opens)\s+(?:its\s+)?(?:\w+\s+){0,3}(?:meeting|session)\b'
+  ru:
+    - 're:(?:^|\s)(?:первое|второе|третье|четвертое|пятое|шестое|седьмое|восьмое|девятое|десятое|одиннадцатое|двенадцатое|\d+[- ]?(?:е|й|я|ое))\s+совещани'
+    - 're:межправительственн\w*\s+рабоч\w*\s+групп'
+    - 're:рабоч\w*\s+групп\w*\s+(?:по|для)'
+    - 're:(?:совещание|сессия|заседание)\s+.{0,80}(?:комитет|совет|групп|ассамбле|комисси)'
+    - 're:конференци\w*\s+сторон'
+    - 're:пленарн\w*\s+(?:заседание|сессия)'
+    - 're:(?:созывает|проводит|открывает)\s+.{0,40}(?:совещание|сессию|заседание)'
+procedural_exceptions:
+  en:
+    - 're:\b(?:emergency|urgent|extraordinary|crisis)\b'
+  ru:
+    - 're:(?:внеочередн|экстренн|чрезвычайн)'
+
 # Hard negatives (B1). Skipped for tier-0 sources and for events with a strong fact verb (B2).
 negative:
   en:

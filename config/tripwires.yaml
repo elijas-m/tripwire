@@ -265,10 +265,16 @@ tripwires:
     source_ids: [who_news_rss, who_don_odata, gnews_who]
     max_tier: 1
     regex: >-
-      (?is)((\bdirector[- ]general\b|\bгенеральн\w+ директор\b).{0,160}\b(pandemic|пандеми\w+)\b)
+      (?isx)((\b(?:director[- ]general|генеральн\w+ директор|world health organization|who|воз)\b
+      .{0,160}
+      \b(?:declares?|declared|declaring|announces?|announced|announcing|characteri[sz]es?|characteri[sz]ed|characteri[sz]ing|classifies?|classified|determines?|determined|confirms?|confirmed|объяв\w+|призна\w+|охарактеризов\w+|квалифициров\w+)\b
+      .{0,80}
+      \b(?:pandemic|пандеми\w+)\b(?!\s+(?:agreement|accord|treaty|preparedness|response|plan|fund|instrument|framework|negotiations?|соглаш\w*|договор\w*|готовност\w*|план\w*|фонд\w*|инструмент\w*|переговор\w*)))
       |
-      (\b(pandemic|пандеми\w+)\b.{0,100}(\bdeclar\w+|\bобъяв\w+))
-    negate_regex: '(?i)(not a pandemic|no longer|isn.t|не является|не объявлена|historic|2009|1918|previous|прошл\w+)'
+      (\b(?:pandemic|пандеми\w+)\b
+      .{0,100}
+      \b(?:declares?|declared|declaring|announces?|announced|announcing|characteri[sz]es?|characteri[sz]ed|classifies?|classified|объяв\w+|призна\w+)\b))
+    negate_regex: '(?i)(not a pandemic|no longer|isn.t|не является|не объявлена|historic|2009|1918|previous|прошл\w+|end(?:ed|s|ing)?\b|over\b|заверш\w*|окончан\w*|прекращ\w*)'
     why: "ВОЗ объявила пандемию — глобальная чрезвычайная ситуация."
     one_liner: "ВОЗ объявила пандемию"
 

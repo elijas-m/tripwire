@@ -561,6 +561,24 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
         after = await self.app.db.fetchone("SELECT COUNT(*) AS n FROM alerts")
         self.assertEqual(int(before["n"]), int(after["n"]))
 
+    async def test_pandemic_agreement_meeting_not_alerted(self) -> None:
+        source = self.app.sources["gnews_who"]
+        result = await self.app.process(RawItem(
+            source_id="gnews_who",
+            title=("WHO Director-General's opening remarks at the Ninth meeting of "
+                   "the Intergovernmental Working Group (IGWG) on the WHO Pandemic "
+                   "Agreement"),
+            body=("WHO Director-General's opening remarks at the Ninth meeting of "
+                  "the Intergovernmental Working Group (IGWG) on the WHO Pandemic "
+                  "Agreement."),
+            url="https://news.google.com/rss/articles/who-igwg-ninth-meeting",
+            published_at=utcnow(), category="pandemic", theater="PANDEMIC",
+            guid="gnews-who-igwg-ninth-meeting",
+        ), source)
+        self.assertEqual(result["kind"], "zero")
+        row = await self.app.db.fetchone("SELECT COUNT(*) AS n FROM alerts")
+        self.assertEqual(int(row["n"]), 0)
+
     async def test_who_feature_article_not_alerted(self) -> None:
         source = self.app.sources["gnews_who"]
         result = await self.app.process(RawItem(

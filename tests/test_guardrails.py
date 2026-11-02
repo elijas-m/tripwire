@@ -80,6 +80,55 @@ class TripwireTheaterTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(self.engine._theater_ok({}, event("x", theater="EU_RU")))
 
 
+class PandemicTripwireTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = DB(Path(self.tmp.name) / "t.db")
+        await self.db.open()
+        self.engine = TripwireEngine(CFG)
+
+    async def asyncTearDown(self) -> None:
+        await self.db.close()
+        self.tmp.cleanup()
+
+    def pandemic_event(self, title: str, body: str | None = None) -> Event:
+        return Event(
+            source_id="gnews_who", tier=0, title=title, body_excerpt=body or title,
+            category="pandemic", theater="PANDEMIC", country=None,
+            ingested_at=utcnow(),
+        )
+
+    async def hit_ids(self, ev: Event) -> set[str]:
+        return {hit.id for hit in await self.engine.match(ev, self.db)}
+
+    async def test_agreement_meeting_is_not_a_pandemic_declaration(self) -> None:
+        hits = await self.hit_ids(self.pandemic_event(
+            "WHO Director-General's opening remarks at the Ninth meeting of the "
+            "Intergovernmental Working Group (IGWG) on the WHO Pandemic Agreement"))
+        self.assertNotIn("TW-PAN-PANDEMIC", hits)
+
+    async def test_pandemic_declaration_speech_still_fires(self) -> None:
+        ev = self.pandemic_event(
+            "WHO Director-General's opening remarks at the media briefing on "
+            "COVID-19 - 11 March 2020",
+            "We have therefore made the assessment that COVID-19 can be "
+            "characterized as a pandemic.")
+        hits = await self.engine.match(ev, self.db)
+        hit = next((h for h in hits if h.id == "TW-PAN-PANDEMIC"), None)
+        self.assertIsNotNone(hit)
+        self.assertEqual(hit.level, L3)
+
+    async def test_end_of_pandemic_is_negated(self) -> None:
+        hits = await self.hit_ids(self.pandemic_event(
+            "WHO declares the end of the COVID-19 pandemic"))
+        self.assertNotIn("TW-PAN-PANDEMIC", hits)
+
+    async def test_russian_declaration_fires(self) -> None:
+        hits = await self.hit_ids(self.pandemic_event(
+            "ВОЗ объявила пандемию из-за нового вируса"))
+        self.assertIn("TW-PAN-PANDEMIC", hits)
+
+
 class TripwireConfirmationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()

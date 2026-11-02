@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from .models import LEVEL_NAMES, L3, RawItem
+from .models import LEVEL_NAMES, L2, L3, RawItem
 from .util import utcnow
 
 log = logging.getLogger(__name__)
@@ -63,6 +63,7 @@ FIXTURES: list[Fixture] = [
         title="Strait of Hormuz closed after mining incident",
         body="Shipping traffic was halted after the Strait of Hormuz was closed by mining.",
         category="gulf", theater="GULF", country="IR", lat=26.57, lon=56.25,
+        expected_level=L2,
     ),
     Fixture(
         tripwire_id="TW-NAT-M75",

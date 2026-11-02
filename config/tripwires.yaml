@@ -197,7 +197,7 @@ tripwires:
   - id: TW-GULF-HORMUZ
     type: regex
     theater: GULF
-    level: CRITICAL
+    level: WARNING
     cooldown_min: 120
     max_tier: 2
     regex: >-

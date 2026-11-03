@@ -123,6 +123,7 @@ class Config:
             "TG_THREAD_CRITICAL", "TG_THREAD_WARNING", "TG_THREAD_NATURE",
             "TG_THREAD_HEALTH", "TG_THREAD_DIGEST", "TG_THREAD_TEST",
             "TRIPWIRE_ADMINS", "NTFY_TOPIC", "SMTP_USER", "SMTP_PASSWORD",
+            "OPENROUTER_API_KEY",
         ):
             if os.environ.get(key):
                 self.secrets[key] = os.environ[key]

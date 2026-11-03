@@ -120,6 +120,26 @@ CREATE INDEX IF NOT EXISTS idx_alerts_cluster ON alerts(cluster_id, sent_at);
 CREATE INDEX IF NOT EXISTS idx_alerts_tripwire ON alerts(tripwire_id, sent_at);
 CREATE INDEX IF NOT EXISTS idx_alerts_sent ON alerts(sent_at);
 
+CREATE TABLE IF NOT EXISTS alert_reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reviewed_at INTEGER NOT NULL,
+    event_id INTEGER,
+    cluster_id INTEGER,
+    theater TEXT,
+    level INTEGER,
+    trigger TEXT,
+    model TEXT,
+    verdict TEXT NOT NULL,
+    mode TEXT,
+    reason TEXT,
+    latency_ms INTEGER,
+    claim TEXT,
+    event_title TEXT,
+    raw TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_alert_reviews_verdict
+    ON alert_reviews(verdict, reviewed_at);
+
 CREATE TABLE IF NOT EXISTS source_health (
     source_id TEXT PRIMARY KEY,
     last_ok INTEGER,
@@ -628,6 +648,21 @@ class DB:
 
     async def get_alert(self, alert_id: int) -> aiosqlite.Row | None:
         return await self.fetchone("SELECT * FROM alerts WHERE id=?", (alert_id,))
+
+    async def insert_alert_review(
+        self, *, reviewed_at: int, event_id: int | None, cluster_id: int | None,
+        theater: str, level: int, trigger: str, model: str, verdict: str, mode: str,
+        reason: str, latency_ms: int, claim: str, event_title: str, raw: str,
+    ) -> int:
+        cur = await self.execute(
+            """INSERT INTO alert_reviews
+               (reviewed_at, event_id, cluster_id, theater, level, trigger, model,
+                verdict, mode, reason, latency_ms, claim, event_title, raw)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (reviewed_at, event_id, cluster_id, theater, level, trigger, model,
+             verdict, mode, reason, latency_ms, claim, event_title, raw),
+        )
+        return cur.lastrowid
 
     async def alert_sent(self, alert_id: int, message_id: int) -> None:
         await self.execute(

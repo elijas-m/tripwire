@@ -9,6 +9,7 @@ from typing import Any
 
 from . import observability
 from .models import L0, L1, L2, L3, LEVEL_NAMES, Cluster, Event, ScoreResult, TripwireHit
+from .relevance import AlertReviewer, ReviewResult
 from .telegram_api import TelegramClient, TelegramError, esc
 from .translate import Translator
 from .util import from_ts, json_loads, now_ts, strip_html, utcnow
@@ -50,7 +51,8 @@ def _event_ts(event: Event) -> int:
 
 
 class AlertManager:
-    def __init__(self, cfg, db, tg: TelegramClient | None) -> None:
+    def __init__(self, cfg, db, tg: TelegramClient | None,
+                 reviewer: AlertReviewer | None = None) -> None:
         self.cfg = cfg
         self.db = db
         self.tg = tg
@@ -67,6 +69,7 @@ class AlertManager:
         self.cooldowns = cfg.thresholds.get("cooldowns", {})
         self.tripwires_by_id = {tw.get("id"): tw for tw in cfg.tripwires}
         self.translator = Translator(cfg, db)
+        self.reviewer = reviewer or AlertReviewer(cfg, db)
         self.route_override: str | None = None
         self.silent = False
         self.test_mode = False
@@ -149,6 +152,18 @@ class AlertManager:
             escalate=escalate, previous=previous,
         )
 
+    async def _review_alert(
+        self, level: int, theater: str, cluster: Cluster | None, event: Event,
+        tripwire: TripwireHit | None, score_result: ScoreResult | None,
+    ) -> ReviewResult | None:
+        if self.silent or self.test_mode or not self.tg or not self.tg.configured:
+            return None
+        claim = tripwire.one_liner if tripwire and tripwire.one_liner else event.title
+        return await self.reviewer.review(
+            event=event, cluster=cluster, level=level, theater=theater,
+            tripwire=tripwire, claim=claim, why=self._why(event, tripwire, score_result),
+        )
+
     # ---------- send ----------
     async def _send_new(
         self, decision, cluster: Cluster | None, event: Event, level: int, theater: str,
@@ -156,6 +171,15 @@ class AlertManager:
         escalate: bool, previous: Any = None,
     ) -> dict[str, Any]:
         thread_id, _topic = self._route(level, theater)
+        review = await self._review_alert(level, theater, cluster, event,
+                                          tripwire, score_result)
+        if review is not None and review.verdict == "reject" and review.enforced:
+            log.warning(
+                "alert withheld by AI review (%s %s): %s",
+                theater, tripwire.id if tripwire else "correlation", review.reason,
+            )
+            return {"action": "rejected", "level": level, "reason": review.reason,
+                    "model": review.model}
         explain = await self._explain(decision, cluster, event, level, theater,
                                       score_result, tripwire, thread_id)
         alert_id = await self.db.insert_alert(

@@ -58,6 +58,21 @@ alerts:
         CRITICAL: "Проверьте позиции и ликвидность."
   disclaimer: "Это не распоряжение органов гражданской обороны. При расхождении следуйте официальным указаниям."
 
+# Pre-send check: an OpenRouter model decides whether the alert claim matches
+# the event. Any error or timeout fails open (the alert is sent as-is) so the
+# pipeline never stops because of the provider. Requires OPENROUTER_API_KEY in
+# the secrets file. Each verdict is stored in the alert_reviews table.
+alert_review:
+  enabled: true
+  # enforce: non-matching alerts are withheld. shadow: log the verdict only.
+  mode: enforce
+  model: nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free
+  url: https://openrouter.ai/api/v1/chat/completions
+  timeout_s: 12
+  max_tokens: 400
+  max_body_chars: 1500
+  min_level: 2
+
 digest:
   # Individual events below this score are omitted from the digest lists.
   min_event_score: 1.0

@@ -6,6 +6,7 @@ import ast
 import re
 from typing import Any
 
+from ..corroborate import WINDOW_HOURS, trigger_relevant
 from ..models import Event, L0, L1, L2, L3, TripwireHit
 from ..util import domain_of, json_loads, norm_text, now_ts, publisher_domain
 
@@ -136,7 +137,12 @@ class TripwireEngine:
             return True, f"официальный источник (tier {event.tier})"
         rows: list[dict[str, Any]] = []
         if event.cluster_id is not None:
-            rows = await db.cluster_origin_rows(event.cluster_id)
+            # The cluster may be a broad bucket (one city, many stories).
+            # Only members that describe this trigger can confirm it.
+            rows = [
+                row for row in await db.cluster_origin_rows(event.cluster_id)
+                if trigger_relevant(event, row, rule.get("id"), window_h=WINDOW_HOURS)
+            ]
         if any(int(3 if row.get("tier") is None else row["tier"]) <= 1 for row in rows):
             return True, "в кластере есть официальный источник"
         origins = {

@@ -135,7 +135,13 @@ CREATE TABLE IF NOT EXISTS alert_reviews (
     latency_ms INTEGER,
     claim TEXT,
     event_title TEXT,
-    raw TEXT
+    raw TEXT,
+    event_published_at INTEGER,
+    event_url TEXT,
+    resolved_url TEXT,
+    article_date INTEGER,
+    date_source TEXT,
+    current INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_alert_reviews_verdict
     ON alert_reviews(verdict, reviewed_at);
@@ -257,6 +263,12 @@ class DB:
         # Calibration anchor: the theater score after the cluster's first scored
         # event. Final total_score keeps growing, which would leak the future.
         await self._add_column("clusters", "score_initial", "REAL")
+        await self._add_column("alert_reviews", "event_published_at", "INTEGER")
+        await self._add_column("alert_reviews", "event_url", "TEXT")
+        await self._add_column("alert_reviews", "resolved_url", "TEXT")
+        await self._add_column("alert_reviews", "article_date", "INTEGER")
+        await self._add_column("alert_reviews", "date_source", "TEXT")
+        await self._add_column("alert_reviews", "current", "INTEGER")
         await self.conn.execute(
             "UPDATE events SET recorded_at=ingested_at WHERE recorded_at IS NULL"
         )
@@ -586,7 +598,9 @@ class DB:
 
     async def cluster_origin_rows(self, cluster_id: int) -> list[dict[str, Any]]:
         rows = await self.fetchall(
-            "SELECT source_id, origin_domain, tier FROM events WHERE cluster_id=?",
+            """SELECT id, source_id, origin_domain, tier, title, simhash,
+                      matched_rules, ingested_at
+               FROM events WHERE cluster_id=?""",
             (cluster_id,),
         )
         return [dict(r) for r in rows]
@@ -653,14 +667,21 @@ class DB:
         self, *, reviewed_at: int, event_id: int | None, cluster_id: int | None,
         theater: str, level: int, trigger: str, model: str, verdict: str, mode: str,
         reason: str, latency_ms: int, claim: str, event_title: str, raw: str,
+        event_published_at: int | None = None, event_url: str = "",
+        resolved_url: str = "", article_date: int | None = None,
+        date_source: str = "", current: int | None = None,
     ) -> int:
         cur = await self.execute(
             """INSERT INTO alert_reviews
                (reviewed_at, event_id, cluster_id, theater, level, trigger, model,
-                verdict, mode, reason, latency_ms, claim, event_title, raw)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                verdict, mode, reason, latency_ms, claim, event_title, raw,
+                event_published_at, event_url, resolved_url, article_date,
+                date_source, current)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (reviewed_at, event_id, cluster_id, theater, level, trigger, model,
-             verdict, mode, reason, latency_ms, claim, event_title, raw),
+             verdict, mode, reason, latency_ms, claim, event_title, raw,
+             event_published_at, event_url, resolved_url, article_date,
+             date_source, current),
         )
         return cur.lastrowid
 

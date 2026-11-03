@@ -92,6 +92,40 @@ class DigestTests(unittest.IsolatedAsyncioTestCase):
         await self.app._check_sources()
         self.assertGreater(int(await self.app.db.meta_get("last_degraded_alert", 0) or 0), 0)
 
+    async def test_same_failing_source_not_repeated_within_a_day(self) -> None:
+        for _ in range(3):
+            await self.app.db.health_error("ria_rss", "HTTP 503")
+        now = int(time.time())
+        await self.app.db.meta_set("last_degraded_alert", now - 7200)
+        await self.app._check_sources()
+        first = int(await self.app.db.meta_get("last_degraded_alert", 0) or 0)
+        self.assertGreaterEqual(first, now - 5)
+
+        # Two hours later the global gate is open again, but the source was
+        # already reported, so the message must not repeat.
+        await self.app.db.meta_set("last_degraded_alert", now - 7200)
+        await self.app._check_sources()
+        second = int(await self.app.db.meta_get("last_degraded_alert", 0) or 0)
+        self.assertEqual(second, now - 7200)
+
+        # After the daily window the same ongoing failure is reported again.
+        await self.app.db.meta_set("degraded_notified:ria_rss", now - 25 * 3600)
+        await self.app.db.meta_set("last_degraded_alert", now - 7200)
+        await self.app._check_sources()
+        third = int(await self.app.db.meta_get("last_degraded_alert", 0) or 0)
+        self.assertGreaterEqual(third, now - 5)
+
+    async def test_new_failure_streak_notifies_immediately(self) -> None:
+        await self.app.db.health_ok("ria_rss", 10.0, 1, None, None)
+        for _ in range(3):
+            await self.app.db.health_error("ria_rss", "HTTP 503")
+        now = int(time.time())
+        await self.app.db.meta_set("degraded_notified:ria_rss", now - 3600)
+        await self.app.db.meta_set("last_degraded_alert", now - 7200)
+        await self.app._check_sources()
+        sent = int(await self.app.db.meta_get("last_degraded_alert", 0) or 0)
+        self.assertGreaterEqual(sent, now - 5)
+
     async def test_first_error_timestamp_resets_after_success(self) -> None:
         await self.app.db.health_error("ria_rss", "HTTP 503")
         row = await self.app.db.health_get("ria_rss")

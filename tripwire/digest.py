@@ -31,6 +31,7 @@ async def source_problems(app) -> dict[str, list[dict[str, Any]]]:
                 "id": sid, "name": src.name, "failures": failures,
                 "error": row.get("last_error") or "",
                 "last_ok": row.get("last_ok"),
+                "first_error_at": row.get("first_error_at"),
             })
             continue
         total = int(row.get("total_items") or 0)

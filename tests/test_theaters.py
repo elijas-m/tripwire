@@ -365,7 +365,8 @@ class CorrelatorTests(unittest.IsolatedAsyncioTestCase):
     async def test_critical_needs_three_independent_sources(self) -> None:
         self.assertEqual(self.correlator._allowed_level(3, 2, True, False), 2)
         cluster = await self.cluster_with("gnews_nato", "ria_rss", "dod_rss")
-        sources, tier01 = await self.correlator._independence(cluster)
+        sources, tier01 = await self.correlator._independence(
+            cluster, event("massive strike on Kyiv"))
         self.assertEqual(sources, 3)
         self.assertTrue(tier01)
         self.assertEqual(self.correlator._allowed_level(3, sources, tier01, False), 3)
@@ -427,6 +428,27 @@ class ClusterMatchTests(unittest.IsolatedAsyncioTestCase):
         d2 = await self.deduper.assign(second, self.db)
         self.assertTrue(d2.is_new_cluster)
         self.assertNotEqual(d1.cluster.id, d2.cluster.id)
+
+    async def test_shared_city_alone_does_not_cluster_political_stories(self) -> None:
+        old = Cluster(theater="ISRAEL", category="israel",
+                      title_canonical="Iran plans attacks on Gulf undersea internet cables",
+                      first_seen=utcnow(), last_seen=utcnow(), state="open",
+                      lat=31.7683, lon=35.2137)
+        await self.db.insert_cluster(old)
+        gaza = event("IDF ground incursion underway in Gaza", theater="ISRAEL",
+                     country="IL", category="israel")
+        gaza.lat, gaza.lon = 31.5017, 34.4668
+        self.assertIsNone(await self.deduper.find_cluster(gaza, self.db))
+
+    async def test_nearby_earthquake_still_clusters_by_location(self) -> None:
+        old = Cluster(theater="NATURE", category="earthquake",
+                      title_canonical="M 5.2 central Italy", first_seen=utcnow(),
+                      last_seen=utcnow(), state="open", lat=42.35, lon=13.40)
+        await self.db.insert_cluster(old)
+        quake = event("M 5.0 central Italy", theater="NATURE", country="IT",
+                      category="earthquake")
+        quake.lat, quake.lon = 42.40, 13.45
+        self.assertIsNotNone(await self.deduper.find_cluster(quake, self.db))
 
 
 class FakeTelegram:

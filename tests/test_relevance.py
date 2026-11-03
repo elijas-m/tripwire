@@ -13,9 +13,10 @@ import httpx
 from tripwire.alerts import AlertManager
 from tripwire.config import Config
 from tripwire.db import DB
+from tripwire.freshness import FreshnessResult
 from tripwire.models import L2, L3, Event, TripwireHit
 from tripwire.relevance import AlertReviewer, ReviewResult
-from tripwire.util import utcnow
+from tripwire.util import from_ts, utcnow
 
 CFG = Config(Path(__file__).resolve().parent.parent).load()
 
@@ -79,13 +80,15 @@ class ReviewerTests(unittest.IsolatedAsyncioTestCase):
         await self.db.close()
         self.tmp.cleanup()
 
-    async def review(self, reviewer: AlertReviewer) -> ReviewResult:
+    async def review(self, reviewer: AlertReviewer,
+                     freshness: FreshnessResult | None = None) -> ReviewResult:
         ev = event()
         ev.id = 13991
         return await reviewer.review(
             event=ev, cluster=None, level=L3, theater="PANDEMIC",
             tripwire=tripwire(), claim="ВОЗ объявила пандемию",
             why="ВОЗ объявила пандемию — глобальная чрезвычайная ситуация.",
+            freshness=freshness,
         )
 
     async def test_reject_is_recorded(self) -> None:
@@ -118,6 +121,72 @@ class ReviewerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.verdict, "pass")
         row = await self.db.fetchone("SELECT * FROM alert_reviews")
         self.assertEqual(row["verdict"], "pass")
+
+    async def test_historical_source_is_rejected(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return response(json.dumps({
+                "relevant": True, "current": False,
+                "reason": "2014 video, date reset by publisher",
+            }))
+
+        reviewer = AlertReviewer(make_cfg(), self.db, transport=httpx.MockTransport(handler))
+        result = await self.review(reviewer)
+        self.assertEqual(result.verdict, "reject")
+        self.assertIs(result.current, False)
+        self.assertIn("not current", result.reason)
+        row = await self.db.fetchone("SELECT current FROM alert_reviews")
+        self.assertEqual(row["current"], 0)
+
+    async def test_current_true_passes(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return response(json.dumps({
+                "relevant": True, "current": True, "reason": "today's declaration",
+            }))
+
+        reviewer = AlertReviewer(make_cfg(), self.db, transport=httpx.MockTransport(handler))
+        result = await self.review(reviewer)
+        self.assertEqual(result.verdict, "pass")
+        self.assertIs(result.current, True)
+
+    async def test_missing_current_does_not_reject(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return response(json.dumps({"relevant": True, "reason": "supported"}))
+
+        reviewer = AlertReviewer(make_cfg(), self.db, transport=httpx.MockTransport(handler))
+        result = await self.review(reviewer)
+        self.assertEqual(result.verdict, "pass")
+        self.assertIsNone(result.current)
+        row = await self.db.fetchone("SELECT current FROM alert_reviews")
+        self.assertIsNone(row["current"])
+
+    async def test_payload_carries_dates_url_and_article_text(self) -> None:
+        seen: list[dict] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(json.loads(request.content))
+            return response(json.dumps({"relevant": True, "current": True, "reason": "ok"}))
+
+        freshness = FreshnessResult(
+            status="fresh", reason="published 2026-11-03",
+            resolved_url="https://cbn.com/index.php/video/news/x",
+            published_at=from_ts(1793736542), modified_at=from_ts(1673740800),
+            uploaded_at=from_ts(1405641600), date_source="meta:published,uploadDate",
+            article_text="IDF ground incursion is underway.", checked=True,
+        )
+        reviewer = AlertReviewer(make_cfg(), self.db, transport=httpx.MockTransport(handler))
+        await self.review(reviewer, freshness)
+
+        payload = json.loads(seen[0]["messages"][1]["content"])
+        self.assertTrue(payload["today"])
+        self.assertEqual(payload["freshness"]["resolved_url"],
+                         "https://cbn.com/index.php/video/news/x")
+        self.assertEqual(payload["freshness"]["article_text"],
+                         "IDF ground incursion is underway.")
+        self.assertEqual(payload["freshness"]["uploaded_at"], "2014-07-18T00:00:00+00:00")
+        row = await self.db.fetchone("SELECT * FROM alert_reviews")
+        self.assertEqual(row["resolved_url"], "https://cbn.com/index.php/video/news/x")
+        self.assertEqual(row["date_source"], "meta:published,uploadDate")
+        self.assertEqual(row["article_date"], 1793736542)
 
     async def test_http_error_fails_open(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
@@ -181,8 +250,20 @@ class StubReviewer:
     def __init__(self, result: ReviewResult) -> None:
         self.result = result
         self.calls = 0
+        self.kwargs: dict = {}
 
     async def review(self, **kwargs) -> ReviewResult:
+        self.calls += 1
+        self.kwargs = kwargs
+        return self.result
+
+
+class StubFreshness:
+    def __init__(self, result: FreshnessResult) -> None:
+        self.result = result
+        self.calls = 0
+
+    async def check(self, event, **kwargs) -> FreshnessResult:
         self.calls += 1
         return self.result
 
@@ -200,10 +281,44 @@ class AlertManagerReviewTests(unittest.IsolatedAsyncioTestCase):
         await self.db.close()
         self.tmp.cleanup()
 
-    def manager(self, reviewer) -> AlertManager:
-        manager = AlertManager(CFG, self.db, self.tg, reviewer=reviewer)
+    def manager(self, reviewer, freshness=None) -> AlertManager:
+        manager = AlertManager(CFG, self.db, self.tg, reviewer=reviewer,
+                               freshness=freshness)
         self.assertEqual(manager.tg, self.tg)
         return manager
+
+    async def test_stale_alert_is_not_sent(self) -> None:
+        reviewer = StubReviewer(ReviewResult(verdict="pass", model="stub"))
+        freshness = StubFreshness(FreshnessResult(
+            status="stale", reason="video uploaded 2014-07-18",
+            resolved_url="https://cbn.com/index.php/video/news/x", enforced=True))
+        manager = self.manager(reviewer, freshness)
+        result = await manager._send_new(
+            self.decision, None, event(), L3, "PANDEMIC", None, tripwire(),
+            escalate=False)
+        self.assertEqual(result["action"], "stale")
+        self.assertEqual(result["resolved_url"], "https://cbn.com/index.php/video/news/x")
+        self.assertEqual(reviewer.calls, 0)
+        self.assertEqual(self.tg.messages, [])
+        row = await self.db.fetchone("SELECT COUNT(*) AS n FROM alerts")
+        self.assertEqual(int(row["n"]), 0)
+
+    async def test_stale_shadow_mode_sends(self) -> None:
+        reviewer = StubReviewer(ReviewResult(verdict="pass", model="stub"))
+        freshness = StubFreshness(FreshnessResult(
+            status="stale", reason="old", enforced=False))
+        manager = self.manager(reviewer, freshness)
+
+        async def fake_translate(items):
+            return [text or "" for text, _lang in items]
+
+        manager.translator.translate_many = fake_translate
+        result = await manager._send_new(
+            self.decision, None, event(), L3, "PANDEMIC", None, tripwire(),
+            escalate=False)
+        self.assertEqual(result["action"], "sent")
+        self.assertEqual(len(self.tg.messages), 1)
+        self.assertIsNotNone(reviewer.kwargs.get("freshness"))
 
     async def test_rejected_alert_is_not_sent(self) -> None:
         reviewer = StubReviewer(ReviewResult(

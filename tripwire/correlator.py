@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from .corroborate import trigger_relevant
 from .models import Cluster, Event, L0, L1, L2, L3, TripwireHit
 from .util import from_ts, now_ts, publisher_domain
 
@@ -54,10 +55,14 @@ class Correlator:
         elapsed_h = max(0.0, (now_ts - last_update) / 3600.0)
         return score * (0.5 ** (elapsed_h / half))
 
-    async def _independence(self, cluster: Cluster | None) -> tuple[int, bool]:
+    async def _independence(self, cluster: Cluster | None, event: Event,
+                            tripwire: TripwireHit | None = None) -> tuple[int, bool]:
         if cluster is None or cluster.id is None:
             return 0, False
-        rows = await self.db.cluster_origin_rows(cluster.id)
+        all_rows = await self.db.cluster_origin_rows(cluster.id)
+        rule_id = tripwire.id if tripwire is not None else None
+        # Independence belongs to the trigger, not to the whole bucket.
+        rows = [row for row in all_rows if trigger_relevant(event, row, rule_id)]
         domains: set[str] = set()
         tier01 = False
         for row in rows:
@@ -68,7 +73,7 @@ class Correlator:
             tier = row.get("tier")
             if int(3 if tier is None else tier) <= 1:
                 tier01 = True
-        if not domains:
+        if not all_rows:
             # Legacy clusters created before events were stored with origins.
             for sid in await self.db.cluster_sources(cluster.id):
                 src = self.cfg.sources_by_id.get(sid)
@@ -214,7 +219,7 @@ class Correlator:
 
         if cluster is not None:
             cluster.total_score = new_score
-        sources, tier01 = await self._independence(cluster)
+        sources, tier01 = await self._independence(cluster, event, tripwire)
         levels = self.effective_levels(event.theater)
         # Modifiers are context: they may accelerate a signal, but they cannot
         # lift a theater to CRITICAL on their own.

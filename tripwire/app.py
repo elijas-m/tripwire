@@ -537,11 +537,31 @@ class TripwireApp:
             except Exception:
                 log.exception("source health check failed")
 
+    async def _degraded_due(self, source_id: str, streak_started: Any, now: int,
+                            repeat_s: int) -> bool:
+        """One notice per source per repeat window; a fresh failure streak notifies at once."""
+        last = int(await self.db.meta_get(f"degraded_notified:{source_id}", 0) or 0)
+        if last <= 0 or now - last >= repeat_s:
+            return True
+        try:
+            return int(streak_started or 0) > last
+        except (TypeError, ValueError):
+            return False
+
     async def _check_sources(self) -> None:
         problems = await source_problems(self)
         now = int(time.time())
+        repeat_s = int(self.cfg.app.get("degraded_repeat_s", 86400))
         failing = [item for item in problems["failed"] if item["failures"] >= 3]
         silent = problems["silent"]
+        failing_due = [
+            item for item in failing
+            if await self._degraded_due(item["id"], item.get("first_error_at"), now, repeat_s)
+        ]
+        silent_due = [
+            item for item in silent
+            if await self._degraded_due(item["id"], item.get("last_ok"), now, repeat_s)
+        ]
 
         long_down: list[dict[str, Any]] = []
         for item in problems["failed"]:
@@ -573,7 +593,7 @@ class TripwireApp:
                 no_events = True
                 no_events_minutes = silent_for // 60
 
-        if not failing and not silent and not no_events and down_share < 0.4:
+        if not failing_due and not silent_due and not no_events:
             return
         last = int(await self.db.meta_get("last_degraded_alert", 0) or 0)
         if now - last < int(self.cfg.app.get("degraded_recheck_s", 3600)):
@@ -586,13 +606,15 @@ class TripwireApp:
             )
         if no_events:
             lines.append(f"• Нет новых событий {no_events_minutes} мин")
-        for item in failing[:8]:
+        for item in failing_due[:8]:
             lines.append(
                 f"• {item['name']} — {item['failures']} ошибок: {item['error'][:120]}"
             )
-        for item in silent[:8]:
+        for item in silent_due[:8]:
             lines.append(f"• {item['name']} — молчит {item['hours']} ч")
         await self.db.meta_set("last_degraded_alert", now)
+        for item in failing_due + silent_due:
+            await self.db.meta_set(f"degraded_notified:{item['id']}", now)
         await self._notify_digest("\n".join(lines)[:4096])
 
     def _seconds_until_digest(self) -> float:

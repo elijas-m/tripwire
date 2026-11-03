@@ -8,6 +8,8 @@ import logging
 from typing import Any
 
 from . import observability
+from .corroborate import trigger_relevant
+from .freshness import FreshnessChecker, FreshnessResult
 from .models import L0, L1, L2, L3, LEVEL_NAMES, Cluster, Event, ScoreResult, TripwireHit
 from .relevance import AlertReviewer, ReviewResult
 from .telegram_api import TelegramClient, TelegramError, esc
@@ -52,7 +54,8 @@ def _event_ts(event: Event) -> int:
 
 class AlertManager:
     def __init__(self, cfg, db, tg: TelegramClient | None,
-                 reviewer: AlertReviewer | None = None) -> None:
+                 reviewer: AlertReviewer | None = None,
+                 freshness: FreshnessChecker | None = None) -> None:
         self.cfg = cfg
         self.db = db
         self.tg = tg
@@ -70,6 +73,7 @@ class AlertManager:
         self.tripwires_by_id = {tw.get("id"): tw for tw in cfg.tripwires}
         self.translator = Translator(cfg, db)
         self.reviewer = reviewer or AlertReviewer(cfg, db)
+        self.freshness = freshness or FreshnessChecker(cfg, db)
         self.route_override: str | None = None
         self.silent = False
         self.test_mode = False
@@ -152,16 +156,32 @@ class AlertManager:
             escalate=escalate, previous=previous,
         )
 
+    def _claim(self, event: Event, tripwire: TripwireHit | None) -> str:
+        return tripwire.one_liner if tripwire and tripwire.one_liner else event.title
+
+    async def _freshness_check(
+        self, level: int, theater: str, event: Event, tripwire: TripwireHit | None,
+    ) -> FreshnessResult | None:
+        if self.silent or self.test_mode or not self.tg or not self.tg.configured:
+            return None
+        return await self.freshness.check(
+            event, level=level, theater=theater,
+            trigger=tripwire.id if tripwire else "",
+            claim=self._claim(event, tripwire),
+        )
+
     async def _review_alert(
         self, level: int, theater: str, cluster: Cluster | None, event: Event,
         tripwire: TripwireHit | None, score_result: ScoreResult | None,
+        freshness: FreshnessResult | None = None,
     ) -> ReviewResult | None:
         if self.silent or self.test_mode or not self.tg or not self.tg.configured:
             return None
-        claim = tripwire.one_liner if tripwire and tripwire.one_liner else event.title
+        claim = self._claim(event, tripwire)
         return await self.reviewer.review(
             event=event, cluster=cluster, level=level, theater=theater,
             tripwire=tripwire, claim=claim, why=self._why(event, tripwire, score_result),
+            freshness=freshness,
         )
 
     # ---------- send ----------
@@ -171,8 +191,18 @@ class AlertManager:
         escalate: bool, previous: Any = None,
     ) -> dict[str, Any]:
         thread_id, _topic = self._route(level, theater)
+        freshness = await self._freshness_check(level, theater, event, tripwire)
+        if freshness is not None and freshness.status == "stale" and freshness.enforced:
+            log.warning(
+                "alert withheld as stale (%s %s): %s | url: %s",
+                theater, tripwire.id if tripwire else "correlation",
+                freshness.reason, freshness.resolved_url,
+            )
+            return {"action": "stale", "level": level, "reason": freshness.reason,
+                    "resolved_url": freshness.resolved_url,
+                    "model": "deterministic-freshness"}
         review = await self._review_alert(level, theater, cluster, event,
-                                          tripwire, score_result)
+                                          tripwire, score_result, freshness)
         if review is not None and review.verdict == "reject" and review.enforced:
             log.warning(
                 "alert withheld by AI review (%s %s): %s",
@@ -384,7 +414,7 @@ class AlertManager:
         disclaimer = str(self.alerts_cfg.get("disclaimer") or "").strip()
         next_tripwire = (tripwire.next_tripwire if tripwire else "").strip()
 
-        sources, total_sources = await self._source_lines(cluster, event)
+        sources, total_sources = await self._source_lines(cluster, event, tripwire)
         score = float(getattr(decision, "score", 0.0) or 0.0)
         threshold = float(getattr(decision, "threshold", 0.0) or 0.0)
         confidence = self._confidence(decision, tripwire, total_sources)
@@ -479,11 +509,15 @@ class AlertManager:
             return "1 источник"
         return "по совокупности сигналов"
 
-    async def _source_lines(self, cluster: Cluster | None, event: Event) -> tuple[list[str], int]:
+    async def _source_lines(self, cluster: Cluster | None, event: Event,
+                            tripwire: TripwireHit | None = None
+                            ) -> tuple[list[str], int]:
         if cluster is not None and cluster.id is not None:
             events = await self.db.events_for_cluster(cluster.id)
         else:
             events = []
+        rule_id = tripwire.id if tripwire is not None else None
+        events = [ev for ev in events if trigger_relevant(event, ev, rule_id)]
         if not events:
             events = [event]
         by_source: dict[str, Event] = {}

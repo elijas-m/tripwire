@@ -169,12 +169,29 @@ class TripwireConfirmationTests(unittest.IsolatedAsyncioTestCase):
         await self.db.insert_cluster(cluster)
         for index, (tier, origin) in enumerate(peers):
             await self.db.insert_event(Event(
-                source_id="gnews_toi", tier=tier, title=f"peer {index}",
+                source_id="gnews_toi", tier=tier,
+                title="Israel struck Iran with a missile attack",
                 url=f"https://{origin}/p{index}", guid_hash=f"peer-{index}",
                 category="israel", theater="ISRAEL", origin_domain=origin,
                 cluster_id=cluster.id, ingested_at=utcnow(),
             ))
         return cluster.id
+
+    async def _unrelated_bucket(self, current: Event, count: int) -> None:
+        cluster = Cluster(theater="ISRAEL", category="israel", title_canonical="test",
+                          first_seen=utcnow(), last_seen=utcnow(), state="open")
+        await self.db.insert_cluster(cluster)
+        current.cluster_id = cluster.id
+        await self.db.insert_event(current)
+        for index in range(count):
+            await self.db.insert_event(Event(
+                source_id="gnews_toi", tier=2,
+                title=f"Israeli election talks continue after coalition meeting {index}",
+                url=f"https://outlet{index}.example/story{index}",
+                guid_hash=f"unrelated-{index}", category="israel", theater="ISRAEL",
+                origin_domain=f"outlet{index}.example",
+                cluster_id=cluster.id, ingested_at=utcnow(),
+            ))
 
     async def test_two_publishers_confirm_critical(self) -> None:
         current = self.strike_event(2)
@@ -201,6 +218,31 @@ class TripwireConfirmationTests(unittest.IsolatedAsyncioTestCase):
         hit = next(h for h in hits if h.id == "TW-IL-IRAN-STRIKE")
         self.assertEqual(hit.level, L2)
         self.assertFalse(hit.confirmed)
+
+    async def test_unrelated_bucket_members_do_not_confirm(self) -> None:
+        current = self.strike_event(2)
+        await self._unrelated_bucket(current, 20)
+        hits = await self.engine.match(current, self.db)
+        hit = next(h for h in hits if h.id == "TW-IL-IRAN-STRIKE")
+        self.assertEqual(hit.level, L2)
+        self.assertFalse(hit.confirmed)
+        self.assertEqual(hit.confirm_reason, "один источник")
+
+    async def test_relevant_peer_confirms_inside_noisy_bucket(self) -> None:
+        current = self.strike_event(2)
+        await self._unrelated_bucket(current, 20)
+        await self.db.insert_event(Event(
+            source_id="gnews_jpost", tier=2,
+            title="Israel struck Iran with a missile attack",
+            url="https://jpost.com/iran-strike", guid_hash="relevant-peer",
+            category="israel", theater="ISRAEL", origin_domain="jpost.com",
+            cluster_id=current.cluster_id, ingested_at=utcnow(),
+        ))
+        hits = await self.engine.match(current, self.db)
+        hit = next(h for h in hits if h.id == "TW-IL-IRAN-STRIKE")
+        self.assertEqual(hit.level, L3)
+        self.assertTrue(hit.confirmed)
+        self.assertIn("2 независимых", hit.confirm_reason)
 
 
 class AirspaceTighteningTests(unittest.IsolatedAsyncioTestCase):
@@ -252,27 +294,51 @@ class IndependenceTests(unittest.IsolatedAsyncioTestCase):
         await self.db.insert_cluster(cluster)
         for index, (origin, tier) in enumerate(origins):
             await self.db.insert_event(Event(
-                source_id="gnews_toi", tier=tier, title=f"e{index}",
+                source_id="gnews_toi", tier=tier,
+                title="Israel struck Iran with a missile attack",
                 url=f"https://{origin}/{index}", guid_hash=f"g{index}",
                 category="israel", theater="ISRAEL", origin_domain=origin,
                 cluster_id=cluster.id, ingested_at=utcnow(),
             ))
         return cluster
 
+    def current(self) -> Event:
+        ev = event("Israel struck Iran with a missile attack", tier=2,
+                   theater="ISRAEL", country="IL", category="israel",
+                   source_id="gnews_toi")
+        return ev
+
     async def test_distinct_publishers_count(self) -> None:
         cluster = await self.cluster_with(("a.example", 2), ("b.example", 2))
-        self.assertEqual(await self.correlator._independence(cluster), (2, False))
+        self.assertEqual(
+            await self.correlator._independence(cluster, self.current()), (2, False))
         self.assertEqual(self.correlator._allowed_level(2, 2, False, False), L2)
 
     async def test_same_publisher_counts_once(self) -> None:
         cluster = await self.cluster_with(("a.example", 2), ("a.example", 2))
-        self.assertEqual(await self.correlator._independence(cluster), (1, False))
+        self.assertEqual(
+            await self.correlator._independence(cluster, self.current()), (1, False))
         self.assertEqual(self.correlator._allowed_level(2, 1, False, False), L1)
 
     async def test_tier_zero_is_official(self) -> None:
         cluster = await self.cluster_with(("a.example", 0))
-        self.assertEqual(await self.correlator._independence(cluster), (1, True))
+        self.assertEqual(
+            await self.correlator._independence(cluster, self.current()), (1, True))
         self.assertEqual(self.correlator._allowed_level(2, 1, True, False), L2)
+
+    async def test_unrelated_members_are_not_independent_confirmation(self) -> None:
+        cluster = await self.cluster_with(("a.example", 2), ("b.example", 2))
+        for index in range(20):
+            await self.db.insert_event(Event(
+                source_id="gnews_toi", tier=2,
+                title=f"Israeli election talks continue after coalition meeting {index}",
+                url=f"https://outlet{index}.example/s{index}",
+                guid_hash=f"noise-{index}", category="israel", theater="ISRAEL",
+                origin_domain=f"outlet{index}.example",
+                cluster_id=cluster.id, ingested_at=utcnow(),
+            ))
+        self.assertEqual(
+            await self.correlator._independence(cluster, self.current()), (2, False))
 
     async def test_telegram_channels_are_independent(self) -> None:
         cluster = Cluster(theater="EU_RU", category="eu_ru", title_canonical="test",
@@ -280,12 +346,18 @@ class IndependenceTests(unittest.IsolatedAsyncioTestCase):
         await self.db.insert_cluster(cluster)
         for index, sid in enumerate(("idf_tg", "nexta_tg")):
             await self.db.insert_event(Event(
-                source_id=sid, tier=0 if index == 0 else 2, title=f"tg {index}",
+                source_id=sid, tier=0 if index == 0 else 2,
+                title="Russia launches missile strike on Kyiv power grid",
                 url=f"https://t.me/s/{sid}/{index}", guid_hash=f"tg-{index}",
                 category="eu_ru", theater="EU_RU", origin_domain="t.me",
                 cluster_id=cluster.id, ingested_at=utcnow(),
             ))
-        self.assertEqual(await self.correlator._independence(cluster), (2, True))
+        self.assertEqual(
+            await self.correlator._independence(
+                cluster, event("Russia launches missile strike on Kyiv power grid",
+                               tier=2, theater="EU_RU", category="eu_ru")),
+            (2, True),
+        )
 
 
 class ModifierCapTests(unittest.IsolatedAsyncioTestCase):
@@ -405,7 +477,7 @@ class AlertFormatTests(unittest.IsolatedAsyncioTestCase):
         current.cluster_id = cluster.id
         await self.db.insert_event(current)
         await self.db.insert_event(Event(
-            source_id="second_wire", tier=2, title="Second wire copy", url="https://b.example/1",
+            source_id="second_wire", tier=2, title="כותרת מקורית", url="https://b.example/1",
             guid_hash="peer-alert", category="israel", theater="ISRAEL",
             cluster_id=cluster.id, ingested_at=utcnow(),
         ))
@@ -424,6 +496,41 @@ class AlertFormatTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("ориг.: כותרת מקורית", text)
         self.assertIn("Триггер: TW-IL-IRAN-STRIKE", text)
         self.assertNotIn("Не установлено:", text)
+
+    async def test_alert_lists_only_supporting_sources(self) -> None:
+        cluster = Cluster(theater="ISRAEL", category="israel", title_canonical="test",
+                          first_seen=utcnow(), last_seen=utcnow(), state="open")
+        await self.db.insert_cluster(cluster)
+        current = self._event()
+        current.cluster_id = cluster.id
+        await self.db.insert_event(current)
+        await self.db.insert_event(Event(
+            source_id="second_wire", tier=2, title="Unrelated election story",
+            url="https://b.example/unrelated", guid_hash="unrelated-alert",
+            category="israel", theater="ISRAEL", cluster_id=cluster.id,
+            ingested_at=utcnow(),
+        ))
+        lines, total = await self.alerts._source_lines(cluster, current)
+        text = "\n".join(lines)
+        self.assertEqual(total, 1)
+        self.assertIn("перевод: כותרת מקורית", text)
+        self.assertNotIn("Unrelated election", text)
+
+    async def test_alert_lists_relevant_peer_sources(self) -> None:
+        cluster = Cluster(theater="ISRAEL", category="israel", title_canonical="test",
+                          first_seen=utcnow(), last_seen=utcnow(), state="open")
+        await self.db.insert_cluster(cluster)
+        current = self._event()
+        current.cluster_id = cluster.id
+        await self.db.insert_event(current)
+        await self.db.insert_event(Event(
+            source_id="second_wire", tier=2, title="כותרת מקורית",
+            url="https://b.example/relevant", guid_hash="relevant-alert",
+            category="israel", theater="ISRAEL", cluster_id=cluster.id,
+            ingested_at=utcnow(),
+        ))
+        lines, total = await self.alerts._source_lines(cluster, current)
+        self.assertEqual(total, 2)
 
     async def test_alert_reports_observability(self) -> None:
         sources = list(CFG.enabled_sources())

@@ -11,6 +11,9 @@ from .models import Cluster, Event
 from .simhash import distance as simhash_distance
 from .util import norm_text, now_ts, utcnow
 
+# Physical events share a location by nature; a headline match is not needed.
+GEOPHYSICAL_CATEGORIES = frozenset({"earthquake", "volcano", "tsunami", "disaster"})
+
 
 @dataclass(slots=True)
 class DedupResult:
@@ -219,7 +222,9 @@ class Deduper:
                     cluster.lat is not None and cluster.lon is not None):
                 dist = haversine_km(event.lat, event.lon, cluster.lat, cluster.lon)
                 if dist <= radius:
-                    score += 3.0
+                    # A shared city must not merge unrelated political stories:
+                    # for non-physical events coordinates alone are only a hint.
+                    score += 3.0 if event.category in GEOPHYSICAL_CATEGORIES else 1.0
                     if event.category == "earthquake":
                         mag = float(event.numeric_payload.get("mag") or 0)
                         if mag >= 4.0:

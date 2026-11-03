@@ -6,6 +6,9 @@ app:
   heartbeat_s: 30
   health_check_s: 300
   degraded_recheck_s: 3600
+  # Re-notify about the same failing/silent source at most once a day while the
+  # problem persists. A recovered source that fails again notifies immediately.
+  degraded_repeat_s: 86400
   max_age_hours: 48
   max_age_hours_seismic: 3
   digest_at: "09:00"
@@ -71,6 +74,22 @@ alert_review:
   timeout_s: 12
   max_tokens: 400
   max_body_chars: 1500
+  min_level: 2
+
+# Deterministic freshness gate: resolves the original article behind a Google
+# News link and reads its own dates (JSON-LD, meta, page payload). An article
+# published, uploaded or last modified before max_age_days is withheld as stale;
+# a reset publication date (modified/upload far older than published) counts as
+# stale too. Fetch or parse failures fail open. Verdicts go to alert_reviews
+# with model deterministic-freshness.
+alert_freshness:
+  enabled: true
+  # enforce: stale alerts are withheld. shadow: record the verdict only.
+  mode: enforce
+  max_age_days: 14
+  timeout_s: 8
+  max_bytes: 2000000
+  max_article_chars: 1500
   min_level: 2
 
 digest:

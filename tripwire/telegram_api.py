@@ -4,11 +4,38 @@ from __future__ import annotations
 
 import asyncio
 import html
+import os
+import sys
 import time
 from collections import deque
 from typing import Any
 
 import httpx
+
+
+def _is_test_runner(spec_name: str, argv0: str) -> bool:
+    if spec_name in ("unittest.__main__", "pytest", "pytest.__main__"):
+        return True
+    name = os.path.basename(argv0).lower()
+    if name.endswith(".exe"):
+        name = name[:-4]
+    if name in ("pytest", "py.test"):
+        return True
+    return name.startswith("test_") and name.endswith(".py")
+
+
+def _under_tests() -> bool:
+    """True inside unittest/pytest, including ``discover -s tests``.
+
+    That invocation imports test modules as top-level packages, so
+    ``tests/__init__.py`` (which points at the test secrets file) never runs.
+    Detection here keeps the live bot token out of any test process.
+    """
+    if os.environ.get("TRIPWIRE_TESTING"):
+        return True
+    main = sys.modules.get("__main__")
+    spec = getattr(getattr(main, "__spec__", None), "name", "") or ""
+    return _is_test_runner(spec, sys.argv[0] if sys.argv else "")
 
 
 class TelegramError(RuntimeError):
@@ -18,9 +45,13 @@ class TelegramError(RuntimeError):
 class TelegramClient:
     def __init__(self, cfg) -> None:
         self.cfg = cfg
-        self.token = cfg.secret(cfg.telegram_cfg.get("token_env", "TELEGRAM_BOT_TOKEN"), "") or ""
+        token = cfg.secret(cfg.telegram_cfg.get("token_env", "TELEGRAM_BOT_TOKEN"), "") or ""
+        chat_id = cfg.secret("TELEGRAM_CHAT_ID", "") or ""
+        if _under_tests():
+            token = chat_id = ""
+        self.token = token
         self.api_base = cfg.telegram_cfg.get("api_base", "https://api.telegram.org").rstrip("/")
-        self.chat_id = cfg.secret("TELEGRAM_CHAT_ID", "") or ""
+        self.chat_id = chat_id
         self.rate_per_min = int(cfg.telegram_cfg.get("rate_per_min", 20))
         self.poll_timeout = int(cfg.telegram_cfg.get("poll_timeout_s", 50))
         self._sent: deque[float] = deque()
@@ -141,6 +172,8 @@ class TelegramClient:
             pass
 
     async def send_backup(self, text: str, critical: bool = False) -> bool:
+        if _under_tests():
+            return False
         backup = self.cfg.channels.get("backup", {}).get("ntfy", {})
         if not backup.get("enabled"):
             return False

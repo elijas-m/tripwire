@@ -17,6 +17,7 @@ from tripwire.geo import GeoIndex
 from tripwire.models import Cluster, Event, L1, L2, L3, TripwireHit
 from tripwire.normalize import Normalizer
 from tripwire.rules.tripwire import TripwireEngine
+from tripwire.telegram_api import TelegramClient, _is_test_runner
 from tripwire.util import UTC, publisher_domain, utcnow
 
 CFG = Config(Path(__file__).resolve().parent.parent).load()
@@ -629,6 +630,30 @@ class AlertFormatTests(unittest.IsolatedAsyncioTestCase):
             "Что опровергнет: счёт театра ниже порога WATCH и удержание 6 ч.", text)
         self.assertNotIn("Следующий tripwire:", text)
         self.assertIn("· ТАКТИЧЕСКИЙ ·", text)
+
+
+class RuntimeGuardTests(unittest.IsolatedAsyncioTestCase):
+    def test_runner_detection(self) -> None:
+        self.assertTrue(_is_test_runner("unittest.__main__", ""))
+        self.assertTrue(_is_test_runner("pytest", ""))
+        self.assertTrue(_is_test_runner("", "tests/test_theaters.py"))
+        self.assertTrue(_is_test_runner("", "/usr/local/bin/pytest"))
+        self.assertTrue(_is_test_runner("", "C:/Python312/Scripts/pytest.exe"))
+        self.assertFalse(
+            _is_test_runner("tripwire.__main__", "/opt/tripwire/tripwire/__main__.py"))
+        self.assertFalse(_is_test_runner("", "/usr/local/bin/tripwire"))
+
+    async def test_live_credentials_are_ignored_under_tests(self) -> None:
+        secrets = {"TELEGRAM_BOT_TOKEN": "123:live", "TELEGRAM_CHAT_ID": "-100"}
+        cfg = SimpleNamespace(
+            telegram_cfg={},
+            secret=lambda key, default=None: secrets.get(key, default),
+        )
+        client = TelegramClient(cfg)
+        try:
+            self.assertFalse(client.configured)
+        finally:
+            await client.close()
 
 
 if __name__ == "__main__":

@@ -32,7 +32,8 @@ MODEL_NAME = "deterministic-freshness"
 
 _TS_RE = re.compile(r'data-n-a-ts="([^"]+)"')
 _SG_RE = re.compile(r'data-n-a-sg="([^"]+)"')
-_GARTURL_RE = re.compile(r'garturlres\\?"\s*,\s*"(https?://[^"\\]+)')
+_UNICODE_ESCAPE_RE = re.compile(r"\\u([0-9a-fA-F]{4})")
+_GARTURL_TEXT_RE = re.compile(r'garturlres"\s*,\s*"(https?://[^"]+)"')
 _JSONLD_RE = re.compile(
     r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
     re.I | re.S,
@@ -135,45 +136,53 @@ class FreshnessChecker:
             transport=self._transport,
         )
         async with client:
-            target = url
+            targets = [url]
             if _is_google_news(url):
-                target = await self._resolve_google_news(client, url)
-                if not target:
+                targets = await self._resolve_google_news(client, url)
+                if not targets:
                     return FreshnessResult(
                         status="unknown", reason="could not resolve Google News link",
                     )
-            response = await client.get(
-                target, headers={"Accept": "text/html,application/xhtml+xml"},
-            )
-            if response.status_code != 200:
-                return FreshnessResult(
-                    status="unknown",
-                    reason=f"article HTTP {response.status_code}",
-                    resolved_url=str(response.url),
+            failure = FreshnessResult(status="unknown", reason="no article target")
+            for target in targets:
+                response = await client.get(
+                    target, headers={"Accept": "text/html,application/xhtml+xml"},
                 )
-            ctype = response.headers.get("content-type", "").lower()
-            if ctype and "html" not in ctype and not ctype.startswith("text/"):
-                return FreshnessResult(
-                    status="unknown", reason=f"unexpected content type {ctype[:60]}",
-                    resolved_url=str(response.url),
-                )
-            page = response.text[: self.max_bytes]
-            resolved = str(response.url)
-        dates = extract_dates(page, resolved)
-        result = self._decide(dates, resolved)
-        return result
+                if response.status_code != 200:
+                    failure = FreshnessResult(
+                        status="unknown",
+                        reason=f"article HTTP {response.status_code}",
+                        resolved_url=str(response.url),
+                    )
+                    continue
+                ctype = response.headers.get("content-type", "").lower()
+                if ctype and "html" not in ctype and not ctype.startswith("text/"):
+                    failure = FreshnessResult(
+                        status="unknown", reason=f"unexpected content type {ctype[:60]}",
+                        resolved_url=str(response.url),
+                    )
+                    continue
+                page = response.text[: self.max_bytes]
+                resolved = str(response.url)
+                dates = extract_dates(page, resolved)
+                if dates.published or dates.modified or dates.uploaded:
+                    return self._decide(dates, resolved)
+                failure = self._decide(dates, resolved)
+            return failure
 
-    async def _resolve_google_news(self, client: httpx.AsyncClient, url: str) -> str:
+    async def _resolve_google_news(
+        self, client: httpx.AsyncClient, url: str,
+    ) -> list[str]:
         art_id = _google_article_id(url)
         if not art_id:
-            return ""
+            return []
         page = await client.get(url)
         if page.status_code != 200:
-            return ""
+            return []
         ts = _TS_RE.search(page.text)
         sg = _SG_RE.search(page.text)
         if not ts or not sg:
-            return ""
+            return []
         inner = (
             '["garturlreq",[["X","X",["X","X"],null,null,1,1,"US:en",null,1,'
             'null,null,null,null,null,0,1],"X","X",1,[1,1,1],1,1,null,0,0,null,0],'
@@ -189,12 +198,8 @@ class FreshnessChecker:
             },
         )
         if response.status_code != 200:
-            return ""
-        text = response.text.replace('\\"', '"').replace("\\/", "/")
-        match = _GARTURL_RE.search(text)
-        if not match:
-            match = re.search(r'garturlres"\s*,\s*"(https?://[^"]+)', text)
-        return match.group(1) if match else ""
+            return []
+        return parse_batch_urls(response.text)
 
     def _decide(self, dates: ArticleDates, resolved_url: str) -> FreshnessResult:
         now = utcnow()
@@ -296,6 +301,63 @@ def _google_article_id(url: str) -> str:
     if "/articles/" not in path:
         return ""
     return path.split("/articles/", 1)[1].split("/", 1)[0].split("?", 1)[0]
+
+
+def parse_batch_urls(text: str) -> list[str]:
+    """Canonical and AMP article links from a Google batchexecute response.
+
+    The payload is a JSON array whose only meaningful row is ``[wrb.fr,
+    Fbv4je, "<inner JSON>" ...]``. The inner JSON is a *string*, and Google
+    escapes non-alphanumerics in it (``=`` arrives as ``\\u003d``), so a plain
+    regex over the raw body truncates the URL at the query string.
+    """
+    urls: list[str] = []
+    body = text.strip()
+    if body.startswith(")]}'"):
+        body = body[4:]
+    for line in body.splitlines():
+        line = line.strip()
+        if not line or line.isdigit():
+            continue
+        try:
+            outer = json.loads(line)
+        except ValueError:
+            continue
+        urls = _garturl_urls(outer)
+        if urls:
+            break
+    if not urls:
+        urls = _garturl_urls_from_text(text)
+    return list(dict.fromkeys(urls))
+
+
+def _garturl_urls(node: Any) -> list[str]:
+    if isinstance(node, str):
+        raw = node.strip()
+        if not raw.startswith("["):
+            return []
+        try:
+            inner = json.loads(raw)
+        except ValueError:
+            return []
+        return _garturl_urls(inner)
+    if isinstance(node, list):
+        if node and node[0] == "garturlres":
+            return [item for item in node[1:]
+                    if isinstance(item, str) and item.startswith("http")]
+        found: list[str] = []
+        for item in node:
+            found.extend(_garturl_urls(item))
+        return found
+    return []
+
+
+def _garturl_urls_from_text(text: str) -> list[str]:
+    unescaped = _UNICODE_ESCAPE_RE.sub(
+        lambda match: chr(int(match.group(1), 16)), text,
+    )
+    unescaped = unescaped.replace('\\"', '"').replace("\\/", "/")
+    return [match.group(1) for match in _GARTURL_TEXT_RE.finditer(unescaped)]
 
 
 def _date_from_url(url: str) -> datetime | None:

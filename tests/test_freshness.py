@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import httpx
 
 from tripwire.db import DB
-from tripwire.freshness import FreshnessChecker, extract_dates
+from tripwire.freshness import FreshnessChecker, extract_dates, parse_batch_urls
 from tripwire.models import Event
 from tripwire.util import utcnow
 
@@ -167,8 +167,52 @@ class FreshnessTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.status, "stale")
         self.assertIn("2014-07-18", result.reason)
 
+    async def test_escaped_query_resolves_and_amp_backs_up_missing_page(self) -> None:
+        canonical = "https://abcnews.com/International/israel-story?id=125188334"
+        amp = "https://abcnews.com/amp/International/israel-story?id=125188334"
+        stale = html_with(published="2025-09-02T20:43:00Z", modified="2025-09-03")
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.method == "POST":
+                inner = (
+                    '["garturlres",'
+                    f'"{canonical.replace("=", chr(92) + "u003d")}",1,'
+                    f'"{amp.replace("=", chr(92) + "u003d")}"]'
+                )
+                inner = inner.replace('"', '\\"')
+                return httpx.Response(200, text=f')]}}\'\n[["wrb.fr","Fbv4je","{inner}"]]')
+            if request.url.path.startswith("/rss/articles/"):
+                return httpx.Response(
+                    200,
+                    text='<html><div data-n-a-ts="1700000000" data-n-a-sg="sig"></div></html>',
+                    headers={"content-type": "text/html"},
+                )
+            if str(request.url) == amp:
+                return httpx.Response(200, text=stale,
+                                      headers={"content-type": "text/html"})
+            return httpx.Response(404)
+
+        checker = FreshnessChecker(
+            cfg(), self.db, transport=httpx.MockTransport(handler))
+        result = await self.check(checker)
+        self.assertEqual(result.status, "stale")
+        self.assertIn("2025-09-02", result.reason)
+        self.assertEqual(result.resolved_url, amp)
+        self.assertEqual(result.published_at.strftime("%Y-%m-%d"), "2025-09-02")
+
 
 class DateExtractionTests(unittest.TestCase):
+    def test_batch_payload_unescapes_query_and_keeps_amp(self) -> None:
+        canonical = "https://abcnews.com/International/israel-story?id=125188334"
+        amp = "https://abcnews.com/amp/International/israel-story?id=125188334"
+        inner = (
+            '["garturlres",'
+            f'"{canonical.replace("=", chr(92) + "u003d")}",1,'
+            f'"{amp.replace("=", chr(92) + "u003d")}"]'
+        ).replace('"', '\\"')
+        text = f')]}}\'\n\n123\n[["wrb.fr","Fbv4je","{inner}",null,null,null,"generic"]]'
+        self.assertEqual(parse_batch_urls(text), [canonical, amp])
+
     def test_cbn_payload_dates(self) -> None:
         page = '<script>var x = {"publish_date":"07-18-2014","update_date":"01-15-2023"}</script>'
         dates = extract_dates(page, "https://example.com/video/news/x")

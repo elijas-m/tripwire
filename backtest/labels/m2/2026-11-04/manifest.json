@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-11-04T08:51:04Z",
+  "since_days": 365,
+  "first_seen_max": "2026-11-01T08:51:04Z",
+  "min_age_hours": 72.0,
+  "require_anchor": true,
+  "theaters": [
+    "EU_RU",
+    "ISRAEL",
+    "GULF",
+    "MENA"
+  ],
+  "seed": "tripwire",
+  "near_miss_range": [
+    4.0,
+    8.0
+  ],
+  "exclude_paths": [
+    "/opt/tripwire/backtest/labels/m2"
+  ],
+  "excluded_known": 0,
+  "counts": {
+    "alert": 0,
+    "precursor": 1,
+    "near_miss": 0,
+    "random": 32
+  },
+  "candidates": 33
+}

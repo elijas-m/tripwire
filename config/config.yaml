@@ -41,6 +41,12 @@ alerts:
   # Empty list disables all "no /ack" reminders; add minutes (e.g. [10, 30]) to enable.
   critical_repeat_minutes: []
   edit_on_confirmation: true
+  # Do not send another message while the event status is unchanged: same
+  # cluster or tripwire, level and status fields (colour/ash/magnitude). The
+  # open card is edited when new sources confirm it; after this window a fresh
+  # reminder card is allowed.
+  dedupe_unchanged: true
+  dedupe_window_hours: 24
   # A WARNING/CRITICAL alert needs at least one cluster event at this score
   # (tripwire alerts bypass). Blocks theater-level alerts riding on unrelated news.
   min_cluster_score: 1.0

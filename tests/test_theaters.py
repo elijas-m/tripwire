@@ -15,7 +15,7 @@ from tripwire.correlator import Correlator
 from tripwire.db import DB
 from tripwire.dedup import Deduper
 from tripwire.geo import GeoIndex
-from tripwire.models import Cluster, Event, L2, RawItem
+from tripwire.models import Cluster, Event, L2, L3, RawItem, TripwireHit
 from tripwire.parsers import parse_ukmto
 from tripwire.rules.lexicon import LexiconEngine
 from tripwire.util import utcnow
@@ -675,6 +675,49 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(second["alert"]["action"], "sent")
         row = await self.app.db.fetchone("SELECT COUNT(*) AS n FROM alerts")
         self.assertEqual(int(row["n"]), 2)
+
+    async def test_unchanged_cluster_status_is_not_sent_twice(self) -> None:
+        tg = FakeTelegram()
+        self.app.alerts.tg = tg
+        cluster = Cluster(theater="EU_RU", category="eu_ru",
+                          title_canonical="Russia threatens nuclear use",
+                          first_seen=utcnow(), last_seen=utcnow(), state="open")
+        await self.app.db.insert_cluster(cluster)
+        ev = event("Russia threatens nuclear strike")
+        ev.cluster_id = cluster.id
+        ev.score = 9.0
+        decision = SimpleNamespace(cluster_level=L2, theater="EU_RU", score=9.0,
+                                   threshold=8.0, sources=1)
+        self.app.alerts.cooldowns = {"warning_minutes": 0}
+        first = await self.app.alerts.handle(decision, cluster, ev)
+        self.assertEqual(first["action"], "sent")
+        second = await self.app.alerts.handle(decision, cluster, ev)
+        self.assertEqual(second["action"], "duplicate")
+        self.assertEqual(len(tg.messages), 1)
+
+    async def test_unchanged_tripwire_in_new_cluster_is_not_sent_twice(self) -> None:
+        tg = FakeTelegram()
+        self.app.alerts.tg = tg
+        tripwire = TripwireHit(
+            id="TW-IL-GROUND-OP", level=L3,
+            why="Израиль начал наземную операцию.",
+            one_liner="Israel begins ground operation in Gaza City", confirmed=True,
+        )
+        decision = SimpleNamespace(cluster_level=L3, theater="ISRAEL", score=20.0,
+                                   threshold=16.0, sources=1)
+        first_event = event("Israel begins ground operation in Gaza City",
+                            theater="ISRAEL", country="IL", category="israel")
+        first_event.score = 20.0
+        second_event = event("IDF ground operation expands in Gaza",
+                             theater="ISRAEL", country="IL", category="israel")
+        second_event.score = 20.0
+        first = await self.app.alerts.handle(decision, None, first_event,
+                                             tripwire=tripwire)
+        self.assertEqual(first["action"], "sent")
+        second = await self.app.alerts.handle(decision, None, second_event,
+                                              tripwire=tripwire)
+        self.assertEqual(second["action"], "duplicate")
+        self.assertEqual(len(tg.messages), 1)
 
     async def test_global_repeats_disabled_for_critical(self) -> None:
         self.app.alerts.tg = FakeTelegram()

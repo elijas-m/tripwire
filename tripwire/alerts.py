@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import html
+import json
 import logging
 from typing import Any
 
@@ -41,7 +43,6 @@ CATEGORY_WHY = {
 
 LEVEL_ICONS = {L2: "🟠", L3: "🔴"}
 MAX_SOURCES = 6
-VOLCANO_COLOUR_RANK = {"green": 0, "yellow": 1, "orange": 2, "red": 3}
 HORIZON_LABELS = {"tactical": "ТАКТИЧЕСКИЙ", "structural": "СТРАТЕГИЧЕСКИЙ"}
 REFUTE_CORRELATION = "счёт театра ниже порога WATCH и удержание 6 ч."
 REFUTE_DEFAULT = "официальное опровержение или отсутствие подтверждения в течение 24 ч."
@@ -70,6 +71,10 @@ class AlertManager:
             for theater in (self.alerts_cfg.get("suppress_repeats_theaters") or [])
         }
         self.cooldowns = cfg.thresholds.get("cooldowns", {})
+        self.dedupe_unchanged = bool(self.alerts_cfg.get("dedupe_unchanged", True))
+        self.dedupe_window_s = int(
+            float(self.alerts_cfg.get("dedupe_window_hours", 24)) * 3600
+        )
         self.tripwires_by_id = {tw.get("id"): tw for tw in cfg.tripwires}
         self.translator = Translator(cfg, db)
         self.reviewer = reviewer or AlertReviewer(cfg, db)
@@ -113,16 +118,30 @@ class AlertManager:
 
         previous = await self._previous_alert(cluster)
         escalate = previous is not None and level > int(previous["level"])
+        signature = self._status_signature(level, theater, event, tripwire)
 
-        # An ongoing eruption produces a new advisory every few hours. Keep one
-        # card per cluster and edit it until the colour code or ash column grows.
-        if (previous is not None and cluster is not None
-                and level == int(previous["level"])
-                and not await self._volcano_escalated(cluster, event)):
-            edited = await self._edit_confirmation(cluster, level, theater, tripwire,
-                                                   score_result, decision, force=True)
-            return {"action": "edited" if edited else "cooldown", "level": level,
+        # Same event, same level and same status fields: keep one card and only
+        # edit it when new sources confirm the cluster. Without this, every new
+        # article in a long-running story produced another message once the
+        # cooldown expired.
+        if (previous is not None and level == int(previous["level"])
+                and self._status_unchanged(previous, signature, now)):
+            edited = await self._edit_confirmation(
+                cluster, level, theater, tripwire, score_result, decision,
+                force=event.category == "volcano" or force_edit,
+            )
+            return {"action": "edited" if edited else "duplicate", "level": level,
                     "alert_id": previous["id"]}
+
+        # The same tripwire can form a new cluster from a fresh article. While
+        # its status is unchanged, do not post that card a second time.
+        if previous is None and tripwire is not None:
+            last = await self.db.latest_alert_by_tripwire(tripwire.id)
+            if (last is not None and (last["status"] or "") in ("sent", "dry_run")
+                    and int(last["level"] or 0) == level
+                    and self._status_unchanged(last, signature, now)):
+                return {"action": "duplicate", "level": level,
+                        "alert_id": last["id"]}
 
         if tripwire is None and previous is None and level == L2:
             last_theater = await self.db.last_theater_alert(theater)
@@ -212,6 +231,8 @@ class AlertManager:
                     "model": review.model}
         explain = await self._explain(decision, cluster, event, level, theater,
                                       score_result, tripwire, thread_id)
+        explain["status_signature"] = self._status_signature(
+            level, theater, event, tripwire)
         alert_id = await self.db.insert_alert(
             cluster.id if cluster else None, level, None, explain,
             tripwire.id if tripwire else None, status="pending",
@@ -298,12 +319,17 @@ class AlertManager:
         trigger = events[-1] if events else None
         if trigger is None:
             return False
+        signature = self._status_signature(
+            level, theater, trigger, tripwire,
+            trigger_id=str(explain.get("trigger") or ""),
+        )
         text = await self._compose(level, theater, cluster, trigger, decision,
                                    score_result, tripwire, int(last["id"]), realert=True)
         ok = await self.tg.edit_message(int(cluster.tg_message_id), text)
         if ok:
             explain["confirmations"] = sources_now
             explain["text"] = text
+            explain["status_signature"] = signature
             await self.db.alert_set_explain(int(last["id"]), explain)
         return ok
 
@@ -620,40 +646,36 @@ class AlertManager:
                 return row
         return None
 
-    async def _volcano_escalated(self, cluster: Cluster, event: Event) -> bool:
-        """True when a new advisory raises the colour code or ash column."""
+    def _status_signature(self, level: int, theater: str, event: Event,
+                          tripwire: TripwireHit | None,
+                          trigger_id: str = "") -> str:
+        """Fingerprint of the event status, ignoring wording and source count."""
         payload = event.numeric_payload or {}
-        colour = str(payload.get("colour_code") or "").lower()
-        if event.category != "volcano" or colour not in VOLCANO_COLOUR_RANK:
-            return True
+        state = {
+            "level": int(level),
+            "theater": str(theater).upper(),
+            "trigger": tripwire.id if tripwire else str(trigger_id or ""),
+            "category": event.category,
+            "event_status": event.status,
+            "colour": str(payload.get("colour_code") or "").lower(),
+            "ash_ft": payload.get("ash_ft"),
+            "mag": payload.get("mag"),
+        }
+        raw = json.dumps(state, sort_keys=True, default=str).encode("utf-8")
+        return hashlib.sha1(raw).hexdigest()
+
+    def _status_unchanged(self, row: Any, signature: str, now: int) -> bool:
+        if not self.dedupe_unchanged or not signature:
+            return False
         try:
-            ash = float(payload.get("ash_ft") or 0)
+            sent_at = int(row["sent_at"] or 0)
         except (TypeError, ValueError):
-            ash = 0.0
-        name = str(payload.get("volcano_name") or "").lower()
-
-        prev_rank = -1
-        prev_ash = 0.0
-        for row in await self.db.events_for_cluster(cluster.id):
-            if event.id is not None and row.id == event.id:
-                continue
-            other = row.numeric_payload or {}
-            if not other.get("colour_code") and not other.get("ash_ft"):
-                continue
-            other_name = str(other.get("volcano_name") or "").lower()
-            if name and other_name and other_name != name:
-                continue
-            prev_rank = max(prev_rank, VOLCANO_COLOUR_RANK.get(
-                str(other.get("colour_code") or "").lower(), -1))
-            try:
-                prev_ash = max(prev_ash, float(other.get("ash_ft") or 0))
-            except (TypeError, ValueError):
-                pass
-
-        if prev_rank < 0 and prev_ash <= 0:
-            return True
-        colour_up = prev_rank >= 0 and VOLCANO_COLOUR_RANK[colour] > prev_rank
-        return colour_up or ash > prev_ash
+            sent_at = 0
+        if sent_at and now - sent_at > self.dedupe_window_s:
+            return False
+        explain = json_loads(row["explain"], {})
+        stored = str((explain or {}).get("status_signature") or "")
+        return stored == signature
 
     def _suppressed(self, level: int, theater: str) -> bool:
         return level == L2 and str(theater).upper() in self.suppressed_warning_theaters

@@ -106,6 +106,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         help="minimum paired labels before reporting kappa")
     parser.add_argument("--kappa-threshold", type=float, default=0.7,
                         help="kappa threshold for the dictionary verdict")
+    parser.add_argument("--coverage-labels", action="store_true",
+                        help="build superseding templates for negatives without 168 h coverage and exit")
+    parser.add_argument("--coverage-round", default="",
+                        help="round directory with candidates.jsonl and labels.jsonl")
+    parser.add_argument("--coverage-out", default="",
+                        help="output directory (default: <root>/coverage/<round>)")
+    parser.add_argument("--coverage-hours", type=int, default=168,
+                        help="horizon the negative labels must cover")
+    parser.add_argument("--coverage-force", action="store_true",
+                        help="overwrite an existing coverage template")
     parser.add_argument("--config-root", default="", help="project root (default: package parent)")
     parser.add_argument("--log-level", default="", help="override log level")
     return parser.parse_args(argv)
@@ -222,6 +232,26 @@ async def amain(args: argparse.Namespace) -> int:
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n",
                            encoding="utf-8")
+        return 0
+
+    if args.coverage_labels:
+        from .coverage import build_coverage_template
+
+        if not args.coverage_round:
+            log.error("coverage: --coverage-round is required")
+            return 2
+        try:
+            result = build_coverage_template(
+                Path(args.coverage_round),
+                Path(args.coverage_out) if args.coverage_out else None,
+                hours=args.coverage_hours,
+                force=args.coverage_force,
+            )
+        except (FileExistsError, FileNotFoundError, ValueError) as exc:
+            log.error("coverage: %s", exc)
+            return 2
+        print(f"Покрытие {result['horizon_hours']} ч: меток {result['candidates']}, "
+              f"ждут закрытия окна {result['pending']} -> {result['out']}")
         return 0
 
     # One-shot CLI modes must not start a second getUpdates long-poll: while the

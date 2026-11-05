@@ -545,7 +545,7 @@ Brier score по горизонтам считается по размеченн
 ```
 python -m tripwire --export-labels --labels-out backtest/labels/m2/2026-11-04 \
   --labels-since-days 365 --labels-negatives 15 --labels-precursor 30 \
-  --labels-near-miss 50 --labels-require-anchor --labels-min-age-hours 72 \
+  --labels-near-miss 50 --labels-require-anchor --labels-min-age-hours 168 \
   --labels-exclude backtest/labels/m2
 python -m tripwire --merge-labels --labels-merge-root backtest/labels/m2 \
   --labels-merge-out backtest/labels/m2/aggregate
@@ -562,8 +562,8 @@ python -m tripwire --calibrate-labels \
 pe, kappa, 95% CI (bootstrap 1000, seed 42) и расхождения.
 
 `--labels-require-anchor` оставляет только эпизоды с зафиксированным
-`score_initial` (с 31.10.2026), `--labels-min-age-hours 72` — только закрытые
-горизонты. Каждый недельный раунд пишется в каталог с датой; в тот же каталог
+`score_initial` (с 31.10.2026), `--labels-min-age-hours 168` — только закрытые
+горизонты, включая 7-дневный. Каждый недельный раунд пишется в каталог с датой; в тот же каталог
 повторно не пишем, а `--labels-exclude` держит реестр завершённых меток
 (`labels.jsonl` с заполненным `case_type`), поэтому один кластер даёт одну
 метку. `--merge-labels` склеивает раунды, применяет `supersedes` и дедуплицирует

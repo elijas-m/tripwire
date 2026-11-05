@@ -10,8 +10,8 @@ precision/recall.
 - театры `EU_RU`, `ISRAEL`, `GULF`, `MENA`;
 - только эпизоды с якорным баллом `score_initial` — он пишется с
   `2026-10-31T23:15Z`, более ранние эпизоды для Brier не годятся;
-- только эпизоды старше 72 ч: окно основного горизонта закрыто, метка не
-  требует последующего обновления `observed_until`;
+- только эпизоды старше 168 ч: закрыты все горизонты, включая 7-дневный,
+  поэтому метка не требует последующего обновления `observed_until`;
 - страты `alert → precursor → random → near_miss`, без дублей; случайные
   негативы обязательны.
 
@@ -25,12 +25,14 @@ TRIPWIRE_SECRETS=/nonexistent TRIPWIRE_TRANSLATE=0 \
   .venv/bin/python -m tripwire --export-labels \
   --labels-out /opt/tripwire/backtest/labels/m2/2026-11-04 \
   --labels-since-days 365 --labels-negatives 15 --labels-precursor 30 \
-  --labels-near-miss 50 --labels-require-anchor --labels-min-age-hours 72 \
+  --labels-near-miss 50 --labels-require-anchor --labels-min-age-hours 168 \
   --labels-exclude /opt/tripwire/backtest/labels/m2
 ```
 
 `--labels-require-anchor` исключает эпизоды без якоря,
-`--labels-min-age-hours 72` — открытые окна. Окно в 365 дней не раздувает
+`--labels-min-age-hours 168` — открытые окна. Порог 168, а не 72: при
+72 часах `observed_until` негатива не доходит до `first_seen + 168h`, и
+7-дневный горизонт остаётся без негативов. Окно в 365 дней не раздувает
 выборку: эпизоды старше 31.10.2026 отсекает фильтр якоря.
 
 Ритм — один каталог в неделю: `m2/2026-11-04`, `m2/2026-11-11`, … Повторный
@@ -84,6 +86,28 @@ python -m tripwire --kappa-labels --kappa-dir backtest/labels/m2/<дата> \
 (bootstrap 1000, seed 42), распределения и расхождения с заметками. Меньше
 5 пар — печатается «недостаточно меток», kappa не считается. `sealed.jsonl`
 не читается.
+
+## Покрытие 168 ч для раунда 2026-11-04
+
+Первый раунд выпущен с минимумом 72 ч, поэтому его негативы не покрывают
+7-дневный горизонт. Через неделю после якоря строится шаблон заменяющих
+меток:
+
+```
+python -m tripwire --coverage-labels \
+  --coverage-round backtest/labels/m2/2026-11-04
+```
+
+В `backtest/labels/m2/coverage/2026-11-04/` пишутся `labels.template.jsonl`
+(только негативы с недостающим покрытием, `supersedes` заполнен,
+`target_until` — минимально допустимый `observed_until`) и `manifest.json`.
+Разметчик перепроверяет эпизод и пишет `labels.jsonl` в тот же каталог:
+`case_type` остаётся прежним, если материального развития не было, иначе
+`anticipatory` с `outcome_at`; `observed_until` — фактическое время проверки,
+не раньше `target_until`. `labels.jsonl` каталога `coverage/` подхватывается
+`--merge-labels` наравне с раундами. Сам шаблон меткой не считается.
+
+Для будущих раундов отдельный проход не нужен: экспорт идёт с `168`.
 
 ## Калибровка
 

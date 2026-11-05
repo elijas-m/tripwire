@@ -549,10 +549,17 @@ python -m tripwire --export-labels --labels-out backtest/labels/m2/2026-11-04 \
   --labels-exclude backtest/labels/m2
 python -m tripwire --merge-labels --labels-merge-root backtest/labels/m2 \
   --labels-merge-out backtest/labels/m2/aggregate
+python -m tripwire --kappa-labels --kappa-dir backtest/labels/m2/<дата> \
+  --kappa-json backtest/labels/m2/<дата>/agreement.json
 python -m tripwire --calibrate-labels \
   --calibration-dir backtest/labels/m2/aggregate \
   --calibration-json backtest/labels/m2/aggregate/calibration.json
 ```
+
+`--kappa-labels` считает согласие двух разметчиков по `case_type`
+(`labels.jsonl` против `labels.agent.jsonl`): `supersedes` применяется,
+незаполненные метки пропускаются, `sealed.jsonl` не читается; в отчёте n, po,
+pe, kappa, 95% CI (bootstrap 1000, seed 42) и расхождения.
 
 `--labels-require-anchor` оставляет только эпизоды с зафиксированным
 `score_initial` (с 31.10.2026), `--labels-min-age-hours 72` — только закрытые

@@ -63,10 +63,27 @@ null`, `label_id = L<YYYY-MM>-<cluster_id>`. Разметчик получает
   `out_of_scope` — быт, культура, внутренняя социальная политика и несовпадение
   субъекта с театром.
 
-Раунд копируется в локальное зеркало `backtest/labels/m2/<дата>/` (вместе с
-`sealed.jsonl`; он в `.gitignore`), метки заполняются в `labels.jsonl` из
-`labels.template.jsonl`. Пилот v1 в M2 не входит и с этими метками не
-смешивается.
+Раунд копируется в локальное зеркало `backtest/labels/m2/<дата>/` —
+`candidates.jsonl`, `labels.template.jsonl` и `manifest.json`. `sealed.jsonl`
+в зеркало не попадает: он остаётся на VPS, чтобы агент-разметчик не мог
+открыть баллы. Метки заполняются в `labels.jsonl` из `labels.template.jsonl`.
+Пилот v1 в M2 не входит и с этими метками не смешивается.
+
+## Согласие и калибровка
+
+Согласие двух разметчиков считается по `case_type` после того, как оба
+закончили раунд:
+
+```
+python -m tripwire --kappa-labels --kappa-dir backtest/labels/m2/<дата> \
+  --kappa-json backtest/labels/m2/<дата>/agreement.json
+```
+
+Команда берёт `labels.jsonl` и `labels.agent.jsonl`, применяет `supersedes`,
+пропускает незаполненные `case_type` и пишет `n`, `po`, `pe`, `kappa`, 95% CI
+(bootstrap 1000, seed 42), распределения и расхождения с заметками. Меньше
+5 пар — печатается «недостаточно меток», kappa не считается. `sealed.jsonl`
+не читается.
 
 ## Калибровка
 

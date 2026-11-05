@@ -88,6 +88,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         help="bootstrap iterations for confidence intervals")
     parser.add_argument("--calibration-json", default="",
                         help="write the calibration report as JSON")
+    parser.add_argument("--kappa-labels", action="store_true",
+                        help="compute inter-annotator kappa on case_type and exit")
+    parser.add_argument("--kappa-dir", default="backtest/labels/m2",
+                        help="round directory with both label files")
+    parser.add_argument("--kappa-user-file", default="labels.jsonl",
+                        help="user label file name inside the round directory")
+    parser.add_argument("--kappa-agent-file", default="labels.agent.jsonl",
+                        help="agent label file name inside the round directory")
+    parser.add_argument("--kappa-json", default="",
+                        help="write the agreement report as JSON")
+    parser.add_argument("--kappa-bootstrap", type=int, default=1000,
+                        help="bootstrap iterations for the kappa confidence interval")
+    parser.add_argument("--kappa-seed", type=int, default=42,
+                        help="bootstrap seed")
+    parser.add_argument("--kappa-min-pairs", type=int, default=5,
+                        help="minimum paired labels before reporting kappa")
+    parser.add_argument("--kappa-threshold", type=float, default=0.7,
+                        help="kappa threshold for the dictionary verdict")
     parser.add_argument("--config-root", default="", help="project root (default: package parent)")
     parser.add_argument("--log-level", default="", help="override log level")
     return parser.parse_args(argv)
@@ -177,6 +195,30 @@ async def amain(args: argparse.Namespace) -> int:
         print(format_report(report))
         if args.calibration_json:
             out = Path(args.calibration_json)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+                           encoding="utf-8")
+        return 0
+
+    if args.kappa_labels:
+        from .agreement import agreement_files, format_agreement
+
+        directory = Path(args.kappa_dir)
+        try:
+            report = agreement_files(
+                directory / args.kappa_user_file,
+                directory / args.kappa_agent_file,
+                bootstrap=args.kappa_bootstrap,
+                seed=args.kappa_seed,
+                min_pairs=args.kappa_min_pairs,
+                threshold=args.kappa_threshold,
+            )
+        except (FileNotFoundError, ValueError) as exc:
+            log.error("kappa: %s", exc)
+            return 2
+        print(format_agreement(report))
+        if args.kappa_json:
+            out = Path(args.kappa_json)
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n",
                            encoding="utf-8")

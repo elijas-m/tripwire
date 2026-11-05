@@ -17,8 +17,10 @@ var/
 backups/
 .smoke/
 
-# Blind-label exports: scores stay local until annotation is frozen
+# Blind-label exports: scores stay on the VPS, never mirrored locally
 backtest/labels/**/sealed.jsonl
+# Transient gate for the upload automation, removed after a successful merge
+backtest/labels/**/.labels-ready
 
 # Caches and virtualenvs
 __pycache__/

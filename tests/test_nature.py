@@ -13,7 +13,8 @@ from tripwire.dedup import Deduper
 from tripwire.geo import GeoIndex
 from tripwire.models import Event, L2, L3
 from tripwire.parsers import (
-    extract_vaac_advisory, parse_imo_quakes, parse_spa, parse_vaac_tokyo,
+    extract_vaac_advisory, parse_imo_quakes, parse_jma_eqvol, parse_spa,
+    parse_vaac_tokyo, parse_vona,
 )
 from tripwire.rules.domain import DomainEngine
 from tripwire.rules.tripwire import TripwireEngine
@@ -255,6 +256,74 @@ class NatureParserTests(unittest.TestCase):
         info = extract_vaac_advisory("AVIATION COLOUR CODE: RED. TOP FL300.")
         self.assertEqual(info["colour_code"], "red")
         self.assertEqual(info["ash_ft"], 30000)
+
+    def test_jma_eqvol_keeps_only_volcano_entries(self) -> None:
+        atom = """<?xml version="1.0" encoding="utf-8"?>
+        <feed xmlns="http://www.w3.org/2005/Atom">
+          <entry>
+            <title>降灰予報（定時）</title>
+            <id>https://www.data.jma.go.jp/developer/xml/data/20261108050035.xml</id>
+            <updated>2026-11-08T05:00:00Z</updated>
+            <link type="application/xml" href="https://www.data.jma.go.jp/developer/xml/data/20261108050035.xml"/>
+            <content type="text">【火山名　桜島　降灰予報（定時）】　現在、桜島は噴火警戒レベル３（入山規制）です。</content>
+          </entry>
+          <entry>
+            <title>震源・震度に関する情報</title>
+            <id>https://www.data.jma.go.jp/developer/xml/data/20261108022402.xml</id>
+            <updated>2026-11-08T02:24:02Z</updated>
+            <link type="application/xml" href="https://www.data.jma.go.jp/developer/xml/data/20261108022402.xml"/>
+            <content type="text">【震源・震度情報】　８日１１時２１分ころ、地震がありました。</content>
+          </entry>
+          <entry>
+            <title>降灰予報（定時）</title>
+            <id>https://www.data.jma.go.jp/developer/xml/data/20261108050042.xml</id>
+            <updated>2026-11-08T05:00:00Z</updated>
+            <link type="application/xml" href="https://www.data.jma.go.jp/developer/xml/data/20261108050042.xml"/>
+            <content type="text">【火山名　諏訪之瀬島　降灰予報（定時）】　現在、諏訪之瀬島は噴火警戒レベル４（避難準備）です。</content>
+          </entry>
+        </feed>"""
+        source = CFG.sources_by_id["jma_volcano"]
+        items = parse_jma_eqvol(source, atom, CFG)
+        self.assertEqual(len(items), 2)
+        self.assertEqual(items[0].payload["volcano_name"], "桜島")
+        self.assertEqual(items[0].payload["jma_level"], 3)
+        self.assertIsNone(items[0].payload["alert_level"])
+        self.assertEqual(items[1].payload["alert_level"], "warning")
+        self.assertEqual(items[1].category, "volcano")
+        self.assertEqual(items[1].published_at.hour, 5)
+
+    def test_vona_reports_from_jina_markdown(self) -> None:
+        text = """Title: Magma
+### [Some link](https://magma.esdm.go.id/vona)
+
+* * *
+
+[Semeru - 20261108/0140Z](https://magma.esdm.go.id/vona?code=SMR)
+
+Fuaad Asfara Mahendra, 6 hours ago
+
+Eruption with volcanic ash cloud at 0140 UTC (0840 local). Best estimate of ash-cloud top is around 13363 FT (4176 M) above sea level.
+
+[View](https://magma.esdm.go.id/vona/479d3501-a7c2-4b62-bc57-ebb4ec94cd1a)
+
+[Lewotobi Laki-laki - 20261107/2222Z](https://magma.esdm.go.id/vona?code=LWK)
+
+Sigit Rian Alfian, 9 hours ago
+
+Eruption at 2222 UTC (0522 local). Ash-cloud is not observed.
+
+[View](https://magma.esdm.go.id/vona/cd44a40f-55d8-4caf-8134-a69d388fca99)
+"""
+        source = CFG.sources_by_id["bmkg_vona"]
+        items = parse_vona(source, text, CFG)
+        self.assertEqual(len(items), 2)
+        first = items[0]
+        self.assertEqual(first.payload["volcano_name"], "Semeru")
+        self.assertEqual(first.payload["ash_ft"], 13363)
+        self.assertEqual(first.published_at.day, 8)
+        self.assertEqual(first.url, "https://magma.esdm.go.id/vona/479d3501-a7c2-4b62-bc57-ebb4ec94cd1a")
+        self.assertIsNone(items[1].payload["ash_ft"])
+        self.assertEqual(items[1].payload["volcano_name"], "Lewotobi Laki-laki")
 
     def test_spa_next_data_list(self) -> None:
         html = ('<script id="__NEXT_DATA__">{"props":{"pageProps":[{"uuid":"N1",'

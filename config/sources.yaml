@@ -82,7 +82,7 @@ sources:
     name: "INGV FDSN M4+"
     type: json
     parser: ingv_geojson
-    url: "https://webservices.ingv.it/fdsnws/event/1/query?format=json&limit=20&orderby=time&minmag=4"
+    url: "https://webservices.ingv.it/fdsnws/event/1/query?format=geojson&limit=20&orderby=time&minmag=4"
     tier: 1
     theater: NATURE
     category: earthquake
@@ -213,23 +213,23 @@ sources:
     interval_s: 1800
     max_age_hours: 24
 
-  - id: bmkg_magma
-    name: "BMKG MAGMA volcano status"
+  - id: bmkg_vona
+    name: "BMKG VONA (r.jina.ai)"
     type: html
-    parser: volcano_status_html
-    url: "https://magma.esdm.go.id/"
+    parser: vona_jina
+    url: "https://r.jina.ai/https://magma.esdm.go.id/vona"
     tier: 1
     theater: NATURE
     category: volcano
-    interval_s: 1800
+    interval_s: 900
     max_age_hours: 48
     lang: id
 
   - id: jma_volcano
-    name: "JMA volcano warnings"
-    type: html
-    parser: volcano_status_html
-    url: "https://www.jma.go.jp/bosai/volcano/"
+    name: "JMA volcano ash forecasts"
+    type: rss
+    parser: jma_eqvol
+    url: "https://www.data.jma.go.jp/developer/xml/feed/eqvol.xml"
     tier: 0
     theater: NATURE
     category: volcano
@@ -647,7 +647,7 @@ sources:
     name: "IMF PortWatch chokepoints"
     type: json
     parser: portwatch_json
-    url: "https://hub.arcgis.com/api/v3/datasets/3da2b9ca97684916b75c4013f95d18ab/downloads/data?format=csv&spatialRefId=4326"
+    url: "https://hub.arcgis.com/api/v3/datasets/3da2b9ca97684916b75c4013f95d18ab_0/downloads/data?format=csv&spatialRefId=4326"
     tier: 1
     theater: GULF
     category: gulf
@@ -800,14 +800,15 @@ sources:
     max_age_hours: 72
 
   - id: spa_en
-    name: "Saudi Press Agency"
-    type: html
-    parser: spa_next_data
-    url: "https://www.spa.gov.sa/en"
+    name: "Saudi Press Agency (Google News)"
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=site%3Aspa.gov.sa%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    origin_domains: [spa.gov.sa]
     tier: 1
     theater: GULF
     category: gulf
-    interval_s: 3600
+    interval_s: 1200
     max_age_hours: 48
     max_items: 20
 

@@ -13,6 +13,7 @@
 |---|---|
 | `/opt/tripwire` | код + конфиги |
 | `/opt/tripwire/config/*.yaml` | источники, пороги, лексикон, геозоны, tripwire |
+| `/opt/tripwire/config/certs/*.pem` | публичные промежуточные CA для сайтов с неполной TLS-цепочкой |
 | `/opt/tripwire/.venv` | Python 3.12 venv |
 | `/var/lib/tripwire/tripwire.db` | база (WAL), бэкапы в `backups/` |
 | `/etc/tripwire/secrets.env` | токены и chat_id (0600, не в git) |

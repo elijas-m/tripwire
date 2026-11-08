@@ -5,6 +5,8 @@ deploy/secrets.env
 *.ppk
 *.pem
 *.key
+# Public CA intermediates shipped for sites with incomplete TLS chains
+!config/certs/*.pem
 *.db
 *.db-wal
 *.db-shm

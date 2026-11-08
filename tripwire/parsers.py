@@ -7,6 +7,7 @@ import json
 import logging
 import re
 import statistics
+import unicodedata
 from datetime import datetime
 from typing import Any
 from urllib.parse import urljoin
@@ -1015,6 +1016,69 @@ def parse_volcano_status(source: Source, text: str, cfg: Any = None) -> list[Raw
     return out
 
 
+def parse_jma_eqvol(source: Source, text: str, cfg: Any = None) -> list[RawItem]:
+    """JMA 地震火山 Atom feed; keeps only entries that name a volcano."""
+    parsed = feedparser.parse(text)
+    out: list[RawItem] = []
+    for entry in parsed.entries:
+        raw_body = _entry_body(entry)
+        title = entry.get("title") or ""
+        body = unicodedata.normalize("NFKC", raw_body)
+        m = re.search(r"【火山名\s+([^】]+?)(?:\s+([^】]*))?】", body)
+        if not m:
+            continue
+        volcano = m.group(1).strip()
+        report = (m.group(2) or "").strip() or title
+        level_m = re.search(r"噴火警戒レベル\s*([1-5])", body)
+        level = int(level_m.group(1)) if level_m else 0
+        url = entry.get("link") or entry.get("id") or source.url
+        out.append(_item(
+            source, f"{volcano}: {report}", body, url, _rss_time(entry),
+            {"volcano_name": volcano, "jma_level": level,
+             "alert_level": "warning" if level >= 4 else None},
+            guid=entry.get("id") or url, category="volcano",
+        ))
+        if len(out) >= source.max_items:
+            break
+    return out
+
+
+_VONA_HEADER_RE = re.compile(
+    r"\[([^\[\]\n]+?)\s+-\s+(\d{8})/(\d{4})Z\]\((https?://[^)]+)\)"
+)
+_VONA_REPORT_RE = re.compile(
+    r"\n\n([^\n]+?)\n\n\[View\]\((https?://[^)]+)\)"
+)
+
+
+def parse_vona(source: Source, text: str, cfg: Any = None) -> list[RawItem]:
+    """BMKG MAGMA VONA reports as rendered by r.jina.ai (markdown)."""
+    headers = list(_VONA_HEADER_RE.finditer(text))
+    out: list[RawItem] = []
+    for index, header in enumerate(headers):
+        tail = headers[index + 1].start() if index + 1 < len(headers) else len(text)
+        report = _VONA_REPORT_RE.search(text, header.end(), tail)
+        if not report:
+            continue
+        body, url = report.group(1).strip(), report.group(2)
+        try:
+            published = datetime.strptime(
+                header.group(2) + header.group(3), "%Y%m%d%H%M",
+            ).replace(tzinfo=UTC)
+        except ValueError:
+            published = None
+        volcano = header.group(1).strip()
+        out.append(_item(
+            source, f"{volcano}: VONA {header.group(2)}/{header.group(3)}Z",
+            body, url, published,
+            {"volcano_name": volcano, "ash_ft": _extract_ash_ft(body)},
+            guid=url, category="volcano",
+        ))
+        if len(out) >= source.max_items:
+            break
+    return out
+
+
 def _vaac_dt(date_raw: str, hhmm: str) -> datetime | None:
     try:
         return datetime.strptime(f"{date_raw} {hhmm}", "%d %b %Y %H%M").replace(tzinfo=UTC)
@@ -1439,6 +1503,8 @@ PARSERS = {
     "vaac_messages": parse_vaac_messages,
     "vaac_list": parse_vaac_list,
     "volcano_status_html": parse_volcano_status,
+    "jma_eqvol": parse_jma_eqvol,
+    "vona_jina": parse_vona,
     "who_don_odata": parse_who_don,
     "ukrainealarm_json": parse_ukrainealarm,
     "tzeva_json": parse_tzeva,

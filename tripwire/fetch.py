@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import ssl
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
+import certifi
 import httpx
 
 from .models import Source
@@ -52,10 +55,27 @@ class Fetcher:
             timeout=httpx.Timeout(self.timeout),
             follow_redirects=True,
             headers={"User-Agent": self.user_agent},
+            verify=self._ssl_context(cfg),
         )
         self.wire_bytes_total = 0
         self.requests_total = 0
         self.not_modified_total = 0
+
+    @staticmethod
+    def _ssl_context(cfg: Any) -> ssl.SSLContext:
+        """Trust certifi plus any extra CA/intermediate PEMs shipped in config/certs."""
+        context = ssl.create_default_context(cafile=certifi.where())
+        config_dir = getattr(cfg, "config_dir", None)
+        if config_dir is None:
+            return context
+        certs_dir = Path(config_dir) / "certs"
+        if certs_dir.is_dir():
+            for cert in sorted(certs_dir.glob("*.pem")):
+                try:
+                    context.load_verify_locations(cafile=str(cert))
+                except (OSError, ssl.SSLError):
+                    continue
+        return context
 
     async def close(self) -> None:
         await self.client.aclose()

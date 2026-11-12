@@ -155,6 +155,43 @@ class LexiconTests(unittest.TestCase):
             tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
         self.assertFalse(result.dropped)
 
+    def test_opening_remarks_about_outbreak_dropped(self) -> None:
+        result = self.engine.score(event(
+            "WHO Director-General's opening remarks at the Member State briefing on "
+            "Ebola outbreak in the Democratic Republic of the Congo – 11 November 2026",
+            tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertTrue(result.dropped)
+        self.assertEqual(result.drop_reason, "procedural_meeting")
+
+    def test_webinar_announcement_dropped(self) -> None:
+        result = self.engine.score(event(
+            "WHO Health Emergencies EPI-WIN webinar: Update on the current Ebola "
+            "Bundibugyo virus disease outbreak",
+            tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertTrue(result.dropped)
+        self.assertEqual(result.drop_reason, "procedural_meeting")
+
+    def test_russian_opening_remarks_dropped(self) -> None:
+        result = self.engine.score(event(
+            "Вступительное слово Генерального директора ВОЗ на брифинге государств-членов "
+            "о вспышке Эболы в Демократической Республике Конго",
+            tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertTrue(result.dropped)
+        self.assertEqual(result.drop_reason, "procedural_meeting")
+
+    def test_emergency_remarks_are_not_dropped(self) -> None:
+        result = self.engine.score(event(
+            "WHO Director-General's opening remarks at the emergency session on the "
+            "Ebola outbreak", tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertFalse(result.dropped)
+
+    def test_ebola_emergency_declaration_is_not_a_speech(self) -> None:
+        result = self.engine.score(event(
+            "WHO declares Ebola outbreak in Congo a public health emergency of "
+            "international concern", tier=0, theater="PANDEMIC", category="pandemic"),
+            1.0, 1.0)
+        self.assertFalse(result.dropped)
+
     def test_factors_multiply_score(self) -> None:
         result = self.engine.score(event("Russia struck the capital with a massive strike"),
                                    geo_factor=0.3, novelty_factor=0.4)

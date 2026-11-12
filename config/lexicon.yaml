@@ -300,9 +300,10 @@ research_headlines:
     - 're:\bрецензируем\w*\b'
 
 # Routine governance meetings (working groups, committee sessions, assemblies)
-# are procedure, not an incident. Matched against the title only, at any tier;
-# tripwires and domain rules still bypass. Emergency/extraordinary meetings are
-# restored by procedural_exceptions.
+# and ceremonial speeches (opening remarks, webinars) are procedure, not an
+# incident. Matched against the title only, at any tier; tripwires and domain
+# rules still bypass. Emergency/extraordinary meetings are restored by
+# procedural_exceptions.
 procedural_headlines:
   en:
     - 're:\b(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|\d{1,2}(?:st|nd|rd|th))\s+(?:meeting|session)\b'
@@ -313,6 +314,11 @@ procedural_headlines:
     - 're:\bconference\s+of\s+the\s+parties\b'
     - 're:\bplenary\s+(?:session|meeting)\b'
     - 're:\b(?:convenes|holds|opens)\s+(?:its\s+)?(?:\w+\s+){0,3}(?:meeting|session)\b'
+    - 're:\bopening\s+(?:remarks|statement|address|speech)\b'
+    - 're:\b(?:closing|concluding|keynote|welcoming|introductory)\s+(?:remarks|address|speech)\b'
+    - 're:\bremarks\s+(?:at|by|to|during|for)\b'
+    - 're:\b(?:speech|address)\s+(?:at|to|by)\s+(?:the\s+)?(?:\w+\s+){0,8}(?:meeting|session|briefing|conference|forum|summit|assembly|council|workshop|webinar|dialogue)\b'
+    - 're:\b(?:webinar|online\s+(?:seminar|event))\b'
   ru:
     - 're:(?:^|\s)(?:первое|второе|третье|четвертое|пятое|шестое|седьмое|восьмое|девятое|десятое|одиннадцатое|двенадцатое|\d+[- ]?(?:е|й|я|ое))\s+совещани'
     - 're:межправительственн\w*\s+рабоч\w*\s+групп'
@@ -321,6 +327,9 @@ procedural_headlines:
     - 're:конференци\w*\s+сторон'
     - 're:пленарн\w*\s+(?:заседание|сессия)'
     - 're:(?:созывает|проводит|открывает)\s+.{0,40}(?:совещание|сессию|заседание)'
+    - 're:(?:вступительн|приветственн|заключительн|ключев)\w*\s+слов\w*'
+    - 're:(?:выступление|речь|доклад)\s+на\s+.{0,60}(?:совещани|сесси|конференци|брифинг|форум|ассамбле)'
+    - 're:(?:вебинар|онлайн-семинар)'
 procedural_exceptions:
   en:
     - 're:\b(?:emergency|urgent|extraordinary|crisis)\b'

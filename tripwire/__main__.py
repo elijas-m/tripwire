@@ -50,10 +50,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         help="only clusters first seen within this many days")
     parser.add_argument("--labels-negatives", type=int, default=0,
                         help="random negative candidates per theater")
-    parser.add_argument("--labels-precursor", type=int, default=0,
-                        help="cap precursor-source candidates across all theaters")
-    parser.add_argument("--labels-near-miss", type=int, default=50,
-                        help="cap near-miss candidates across all theaters")
+    parser.add_argument("--labels-signal-per-band", type=int, default=20,
+                        help="cap candidates per anchor-score band across all theaters")
     parser.add_argument("--labels-alert-cap", type=int, default=0,
                         help="cap alert candidates per theater (0 = all)")
     parser.add_argument("--labels-seed", default="tripwire",
@@ -147,8 +145,7 @@ async def amain(args: argparse.Namespace) -> int:
                 db, Path(args.labels_out),
                 since_days=args.labels_since_days,
                 negatives_per_theater=args.labels_negatives,
-                precursor_cap=args.labels_precursor,
-                near_miss_cap=args.labels_near_miss,
+                signal_per_band=args.labels_signal_per_band,
                 alert_cap=args.labels_alert_cap,
                 seed=args.labels_seed,
                 min_age_hours=args.labels_min_age_hours,

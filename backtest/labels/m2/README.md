@@ -12,8 +12,9 @@ precision/recall.
   `2026-10-31T23:15Z`, более ранние эпизоды для Brier не годятся;
 - только эпизоды старше 168 ч: закрыты все горизонты, включая 7-дневный,
   поэтому метка не требует последующего обновления `observed_until`;
-- страты `alert → precursor → random → near_miss`, без дублей; случайные
-  негативы обязательны.
+- страты по якорному баллу: `alert → band_8plus → band_4_8 → band_2_4 →
+  band_0_2 → random`, без дублей; случайная выборка нулевых якорей
+  обязательна как контроль базовой частоты.
 
 ## Экспорт
 
@@ -24,8 +25,8 @@ cd /opt/tripwire
 TRIPWIRE_SECRETS=/nonexistent TRIPWIRE_TRANSLATE=0 \
   .venv/bin/python -m tripwire --export-labels \
   --labels-out /opt/tripwire/backtest/labels/m2/2026-11-04 \
-  --labels-since-days 365 --labels-negatives 15 --labels-precursor 30 \
-  --labels-near-miss 50 --labels-require-anchor --labels-min-age-hours 168 \
+  --labels-since-days 365 --labels-negatives 15 --labels-signal-per-band 20 \
+  --labels-require-anchor --labels-min-age-hours 168 \
   --labels-exclude /opt/tripwire/backtest/labels/m2
 ```
 
@@ -34,6 +35,12 @@ TRIPWIRE_SECRETS=/nonexistent TRIPWIRE_TRANSLATE=0 \
 72 часах `observed_until` негатива не доходит до `first_seen + 168h`, и
 7-дневный горизонт остаётся без негативов. Окно в 365 дней не раздувает
 выборку: эпизоды старше 31.10.2026 отсекает фильтр якоря.
+
+`--labels-signal-per-band` — лимит на каждую корзину якорного балла по всем
+театрам. Корзины `(0, 2]`, `(2, 4]`, `(4, 8]`, `> 8` отбирают по `score_initial`,
+а не по `total_score`: итоговый балл растёт вслед за событиями и уводил бы
+выборку в сторону исхода. `random` берёт только нулевые якоря — это контроль
+базовой частоты, без него калибровка завышена.
 
 Ритм — один каталог в неделю: `m2/2026-11-04`, `m2/2026-11-11`, … Повторный
 запуск в тот же каталог запрещён (защита от перезаписи уже размеченных

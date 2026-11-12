@@ -64,7 +64,8 @@ class LabelExportTests(unittest.IsolatedAsyncioTestCase):
         out = self.root / "pilot"
         result = await self._export(out)
         self.assertEqual(result["counts"],
-                         {"alert": 1, "precursor": 0, "near_miss": 1, "random": 2})
+                         {"alert": 1, "band_8plus": 0, "band_4_8": 0,
+                          "band_2_4": 0, "band_0_2": 0, "random": 3})
         self.assertEqual(result["manifest"]["schema_version"], 2)
         self.assertFalse(result["manifest"]["require_anchor"])
         candidates = [json.loads(line) for line in
@@ -82,7 +83,8 @@ class LabelExportTests(unittest.IsolatedAsyncioTestCase):
         out = self.root / "anchored-set"
         result = await self._export(out, require_anchor=True)
         self.assertEqual(result["counts"],
-                         {"alert": 1, "precursor": 0, "near_miss": 1, "random": 1})
+                         {"alert": 1, "band_8plus": 0, "band_4_8": 1,
+                          "band_2_4": 0, "band_0_2": 1, "random": 0})
         sealed = [json.loads(line) for line in
                   (out / "sealed.jsonl").read_text(encoding="utf-8").splitlines()]
         self.assertTrue(all(item["score_initial"] is not None for item in sealed))
@@ -110,7 +112,7 @@ class LabelExportTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual({item["candidate_id"] for item in sealed},
                          {item["candidate_id"] for item in candidates})
         self.assertEqual({item["stratum"] for item in sealed},
-                         {"alert", "near_miss", "random"})
+                         {"alert", "random"})
 
     async def test_sampling_is_deterministic(self) -> None:
         first = self.root / "one"
@@ -123,21 +125,46 @@ class LabelExportTests(unittest.IsolatedAsyncioTestCase):
                       (second / "candidates.jsonl").read_text(encoding="utf-8").splitlines()]
         self.assertEqual(first_ids, second_ids)
 
-    async def test_precursor_stratum_is_not_duplicated(self) -> None:
+    async def test_signal_bands_are_not_duplicated(self) -> None:
         await self._cluster(107, "EU_RU", self.now - 3600, 2.0, 0)
         await self._cluster(108, "EU_RU", self.now - 3600, 5.0, 0)
-        await self._event(107, source_id="easa_czib")
-        await self._event(108, source_id="easa_czib")
-        out = self.root / "prec"
-        result = await self._export(out, negatives_per_theater=1,
-                                    precursor_cap=2, near_miss_cap=10)
-        self.assertEqual(result["counts"]["precursor"], 2)
-        sealed = [json.loads(line) for line in
-                  (out / "sealed.jsonl").read_text(encoding="utf-8").splitlines()]
+        await self._event(107)
+        await self._event(108)
+        for cluster_id, score in ((107, 2.0), (108, 5.0)):
+            self.assertTrue(await self.db.set_cluster_initial_score(cluster_id, score))
+        out = self.root / "bands"
+        result = await self._export(out, negatives_per_theater=1, signal_per_band=2)
+        self.assertEqual(result["counts"]["band_0_2"], 1)
+        self.assertEqual(result["counts"]["band_4_8"], 1)
+        sealed = self._rows(out / "sealed.jsonl")
         strata = {item["cluster_id"]: item["stratum"] for item in sealed}
-        self.assertEqual(strata[107], "precursor")
-        self.assertEqual(strata[108], "precursor")
+        self.assertEqual(strata[107], "band_0_2")
+        self.assertEqual(strata[108], "band_4_8")
         self.assertEqual(len(strata), len(sealed))
+
+    async def test_bands_follow_anchor_not_final_score(self) -> None:
+        await self._cluster(109, "EU_RU", self.now - 3600, 12.0, 0)
+        await self._event(109)
+        self.assertTrue(await self.db.set_cluster_initial_score(109, 0.0))
+        out = self.root / "anchor-vs-total"
+        result = await self._export(out, require_anchor=True, negatives_per_theater=2)
+        strata = {item["cluster_id"]: item["stratum"]
+                  for item in self._rows(out / "sealed.jsonl")}
+        self.assertEqual(strata[109], "random")
+        self.assertEqual(result["counts"]["band_8plus"], 0)
+
+    async def test_band_edges_are_left_open_right_closed(self) -> None:
+        for cluster_id, score in ((110, 2.0), (111, 4.0), (112, 8.0)):
+            await self._cluster(cluster_id, "ISRAEL", self.now - 3600, score, 0)
+            await self._event(cluster_id)
+            self.assertTrue(await self.db.set_cluster_initial_score(cluster_id, score))
+        out = self.root / "edges"
+        await self._export(out, require_anchor=True, signal_per_band=5)
+        strata = {item["cluster_id"]: item["stratum"]
+                  for item in self._rows(out / "sealed.jsonl")}
+        self.assertEqual(strata[110], "band_0_2")
+        self.assertEqual(strata[111], "band_2_4")
+        self.assertEqual(strata[112], "band_4_8")
 
     async def test_existing_export_is_not_overwritten(self) -> None:
         out = self.root / "pilot"
@@ -200,7 +227,8 @@ class LabelExportTests(unittest.IsolatedAsyncioTestCase):
         second = self.root / "round-2"
         result = await self._export(second, exclude_paths=[first])
         self.assertEqual(result["counts"],
-                         {"alert": 0, "precursor": 0, "near_miss": 1, "random": 2})
+                         {"alert": 0, "band_8plus": 0, "band_4_8": 0,
+                          "band_2_4": 0, "band_0_2": 0, "random": 3})
         self.assertEqual(result["manifest"]["excluded_known"], 1)
         offered = {row["cluster_id"] for row in self._rows(second / "candidates.jsonl")}
         self.assertNotIn(101, offered)

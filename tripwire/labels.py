@@ -15,16 +15,18 @@ log = logging.getLogger(__name__)
 
 GEO_THEATERS = ("EU_RU", "ISRAEL", "GULF", "MENA")
 SCHEMA_VERSION = 2
-NEAR_MISS_MIN = 4.0
-NEAR_MISS_MAX = 8.0
 MAX_EVIDENCE_EVENTS = 8
-# Sources that report precursors (airspace closures, evacuation orders, attacks
-# in progress) rather than post-hoc news. Calibration needs their episodes, so
-# they get their own stratum instead of being diluted in the random pool.
-PRECURSOR_SOURCES = (
-    "easa_czib", "state_travel_rss", "fcdo_atom",
-    "ukmto_jina", "tzeva_notifications", "tzeva_history",
+# Strata follow the calibration predictor itself: (low, high] bands of the
+# frozen anchor score, strongest first. Source-identity strata were dropped
+# after two rounds yielded 0 positives from 11 precursor candidates, and
+# selecting on total_score leaked the outcome into the sample.
+SCORE_BANDS = (
+    ("band_8plus", 8.0, None),
+    ("band_4_8", 4.0, 8.0),
+    ("band_2_4", 2.0, 4.0),
+    ("band_0_2", 0.0, 2.0),
 )
+STRATA = ("alert", *(name for name, _, _ in SCORE_BANDS), "random")
 
 
 def _iso(ts: int | float | None) -> str | None:
@@ -116,68 +118,52 @@ async def _alert_rows(
     return rows[:cap] if cap > 0 else rows
 
 
-async def _near_miss_rows(
-    db: DB, theater: str, since: int, low: float, high: float, cap: int,
+async def _band_rows(
+    db: DB, theater: str, since: int, low: float, high: float | None,
     until: int | None = None, require_anchor: bool = False,
 ) -> list[Any]:
+    """Anchor-score band ``(low, high]`` — the predictor calibration uses."""
     extra, extra_params = _extra_conditions(until, require_anchor)
+    upper = " AND c.score_initial<=?" if high is not None else ""
+    params: tuple[Any, ...] = (theater, since, *extra_params, low)
+    if high is not None:
+        params += (high,)
     return await db.fetchall(
         f"""SELECT c.*, NULL AS decided_at, 0 AS alert_level, 0 AS alert_count
            FROM clusters c
            WHERE c.theater=? AND c.first_seen>=?{extra}
-             AND c.total_score>=? AND c.total_score<?
+             AND c.score_initial>?{upper}
              AND EXISTS (SELECT 1 FROM events e WHERE e.cluster_id=c.id)
              AND NOT EXISTS (SELECT 1 FROM alerts a
                              WHERE a.cluster_id=c.id AND a.level>=2)
-           ORDER BY c.total_score DESC, c.last_seen DESC
-           LIMIT ?""",
-        (theater, since, *extra_params, low, high, cap),
+           ORDER BY c.score_initial DESC, c.last_seen DESC""",
+        params,
     )
 
 
 async def _random_rows(
-    db: DB, theater: str, since: int, below: float, count: int, seed: str,
+    db: DB, theater: str, since: int, count: int, seed: str,
     exclude: set[int] | None = None,
     until: int | None = None, require_anchor: bool = False,
 ) -> list[Any]:
+    """Zero-anchor control: keeps the base rate the signal bands enrich honest."""
     if count <= 0:
         return []
     extra, extra_params = _extra_conditions(until, require_anchor)
     pool = await db.fetchall(
         f"""SELECT c.*, NULL AS decided_at, 0 AS alert_level, 0 AS alert_count
            FROM clusters c
-           WHERE c.theater=? AND c.first_seen>=?{extra} AND c.total_score<?
+           WHERE c.theater=? AND c.first_seen>=?{extra}
+             AND (c.score_initial IS NULL OR c.score_initial=0)
              AND EXISTS (SELECT 1 FROM events e WHERE e.cluster_id=c.id)
              AND NOT EXISTS (SELECT 1 FROM alerts a
                              WHERE a.cluster_id=c.id AND a.level>=2)
            ORDER BY c.id""",
-        (theater, since, *extra_params, below),
+        (theater, since, *extra_params),
     )
     if exclude:
         pool = [row for row in pool if row["id"] not in exclude]
     return _sample(pool, count, seed)
-
-
-async def _precursor_rows(
-    db: DB, theater: str, since: int,
-    until: int | None = None, require_anchor: bool = False,
-) -> list[Any]:
-    """Clusters whose first event came from a precursor source."""
-    placeholders = ",".join("?" for _ in PRECURSOR_SOURCES)
-    extra, extra_params = _extra_conditions(until, require_anchor)
-    return await db.fetchall(
-        f"""SELECT c.*, NULL AS decided_at, 0 AS alert_level, 0 AS alert_count
-            FROM clusters c
-            WHERE c.theater=? AND c.first_seen>=?{extra}
-              AND EXISTS (SELECT 1 FROM events e
-                          WHERE e.cluster_id=c.id AND e.source_id IN ({placeholders})
-                            AND e.id=(SELECT MIN(e2.id) FROM events e2
-                                      WHERE e2.cluster_id=c.id))
-              AND NOT EXISTS (SELECT 1 FROM alerts a
-                              WHERE a.cluster_id=c.id AND a.level>=2)
-            ORDER BY c.id""",
-        (theater, since, *extra_params, *PRECURSOR_SOURCES),
-    )
 
 
 async def _candidate(db: DB, row: Any) -> dict[str, Any]:
@@ -244,10 +230,8 @@ async def export_label_candidates(
     since_days: int = 30,
     negatives_per_theater: int = 0,
     alert_cap: int = 0,
-    precursor_cap: int = 0,
-    near_miss_cap: int = 50,
+    signal_per_band: int = 20,
     seed: str = "tripwire",
-    near_miss_range: tuple[float, float] = (NEAR_MISS_MIN, NEAR_MISS_MAX),
     min_age_hours: float = 0.0,
     require_anchor: bool = False,
     exclude_paths: Iterable[str | Path] | None = None,
@@ -271,12 +255,11 @@ async def export_label_candidates(
     now = now_ts()
     since = now - since_days * 86400
     until = now - int(min_age_hours * 3600) if min_age_hours > 0 else None
-    low, high = near_miss_range
     exclude_list = [str(path) for path in (exclude_paths or [])]
     excluded_candidates, excluded_clusters = _load_exclusions(exclude_list, out_dir)
     candidates: list[dict[str, Any]] = []
     sealed: list[dict[str, Any]] = []
-    counts = {"alert": 0, "precursor": 0, "near_miss": 0, "random": 0}
+    counts = {name: 0 for name in STRATA}
     selected: set[int] = set()
 
     async def add(row: Any, stratum: str) -> None:
@@ -306,38 +289,28 @@ async def export_label_candidates(
             "first_seen": _iso(row["first_seen"]),
         })
 
-    precursor_pool: list[Any] = []
     for theater in GEO_THEATERS:
         for row in await _alert_rows(db, theater, since, alert_cap,
                                      until, require_anchor):
             if row["id"] not in excluded_clusters:
                 await add(row, "alert")
-        precursor_pool.extend(
-            row for row in await _precursor_rows(db, theater, since,
-                                                 until, require_anchor)
-            if row["id"] not in excluded_clusters
-        )
-    if precursor_cap > 0:
-        for row in _sample(precursor_pool, precursor_cap, seed):
-            await add(row, "precursor")
+    for name, low, high in SCORE_BANDS:
+        pool: list[Any] = []
+        for theater in GEO_THEATERS:
+            pool.extend(
+                row for row in await _band_rows(db, theater, since, low, high,
+                                                until, require_anchor)
+                if row["id"] not in selected and row["id"] not in excluded_clusters
+            )
+        for row in _sample(pool, signal_per_band, seed):
+            await add(row, name)
     for theater in GEO_THEATERS:
-        for row in await _random_rows(db, theater, since, low,
+        for row in await _random_rows(db, theater, since,
                                       negatives_per_theater, seed,
                                       exclude=selected | excluded_clusters,
                                       until=until,
                                       require_anchor=require_anchor):
             await add(row, "random")
-    near_pool: list[Any] = []
-    for theater in GEO_THEATERS:
-        near_pool.extend(
-            row for row in await _near_miss_rows(db, theater, since, low, high, 200,
-                                                 until, require_anchor)
-            if row["id"] not in selected and row["id"] not in excluded_clusters
-        )
-    near_selected = (_sample(near_pool, near_miss_cap, seed)
-                     if near_miss_cap > 0 else near_pool)
-    for row in near_selected:
-        await add(row, "near_miss")
 
     manifest = {
         "schema_version": SCHEMA_VERSION,
@@ -348,7 +321,8 @@ async def export_label_candidates(
         "require_anchor": require_anchor,
         "theaters": list(GEO_THEATERS),
         "seed": seed,
-        "near_miss_range": [low, high],
+        "score_bands": {name: [low, high] for name, low, high in SCORE_BANDS},
+        "signal_per_band": signal_per_band,
         "exclude_paths": exclude_list,
         "excluded_known": len(excluded_candidates),
         "counts": counts,

@@ -545,8 +545,8 @@ Brier score по горизонтам считается по размеченн
 
 ```
 python -m tripwire --export-labels --labels-out backtest/labels/m2/2026-11-04 \
-  --labels-since-days 365 --labels-negatives 15 --labels-precursor 30 \
-  --labels-near-miss 50 --labels-require-anchor --labels-min-age-hours 168 \
+  --labels-since-days 365 --labels-negatives 15 --labels-signal-per-band 20 \
+  --labels-require-anchor --labels-min-age-hours 168 \
   --labels-exclude backtest/labels/m2
 python -m tripwire --merge-labels --labels-merge-root backtest/labels/m2 \
   --labels-merge-out backtest/labels/m2/aggregate

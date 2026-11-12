@@ -348,7 +348,7 @@ class TripwireApp:
         )
 
     async def _capture_initial_score(self, cluster: Cluster, score: float) -> None:
-        """Anchor score for calibration: set once on the cluster's first event."""
+        """Anchor score for calibration: the first event's own score, frozen once."""
         if cluster is None or cluster.id is None or cluster.score_initial is not None:
             return
         # A pre-existing cluster must not anchor at a later event.
@@ -417,7 +417,8 @@ class TripwireApp:
         event.level = decision.cluster_level
         await self.db.update_event_scoring(event_id, result.score, decision.cluster_level, rules)
         if old_score is None:
-            await self._capture_initial_score(cluster, decision.score)
+            # Theater decay and modifiers belong to other clusters, not this episode.
+            await self._capture_initial_score(cluster, result.score)
         cluster.total_score = decision.score
         cluster.level = max(cluster.level, decision.cluster_level)
         if tripwire is not None:

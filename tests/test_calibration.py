@@ -275,10 +275,46 @@ class AnchorScoreTests(unittest.IsolatedAsyncioTestCase):
                 ), source)
                 self.assertEqual(result["kind"], "scored")
                 row = await app.db.fetchone(
-                    "SELECT total_score, score_initial FROM clusters ORDER BY id DESC LIMIT 1")
+                    "SELECT id, total_score, score_initial FROM clusters ORDER BY id DESC LIMIT 1")
                 self.assertIsNotNone(row["score_initial"])
-                self.assertAlmostEqual(float(row["score_initial"]),
-                                       float(row["total_score"]))
+                scored = await app.db.fetchone(
+                    "SELECT score FROM events WHERE cluster_id=? ORDER BY id ASC LIMIT 1",
+                    (row["id"],))
+                self.assertAlmostEqual(float(row["score_initial"]), float(scored["score"]))
+            finally:
+                await app.close()
+                if old is None:
+                    os.environ.pop("TRIPWIRE_DATA_DIR", None)
+                else:
+                    os.environ["TRIPWIRE_DATA_DIR"] = old
+
+    async def test_anchor_is_not_inflated_by_theater_heat(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            old = os.environ.get("TRIPWIRE_DATA_DIR")
+            os.environ["TRIPWIRE_DATA_DIR"] = tmp
+            app = TripwireApp()
+            await app.start()
+            try:
+                source = app.sources["gnews_nato"]
+                await app.process(RawItem(
+                    source_id="gnews_nato",
+                    title="Putin orders tactical nuclear weapons use against Ukraine",
+                    body="", url="https://example.org/nuclear-heat",
+                    published_at=utcnow(), category="eu_ru", guid="heat-1",
+                ), source)
+                await app.process(RawItem(
+                    source_id="gnews_nato",
+                    title="Explosion in Kharkiv",
+                    body="", url="https://example.org/explosion-heat",
+                    published_at=utcnow(), category="eu_ru", guid="heat-2",
+                ), source)
+                row = await app.db.fetchone(
+                    "SELECT id, total_score, score_initial FROM clusters ORDER BY id DESC LIMIT 1")
+                scored = await app.db.fetchone(
+                    "SELECT score FROM events WHERE cluster_id=? ORDER BY id ASC LIMIT 1",
+                    (row["id"],))
+                self.assertAlmostEqual(float(row["score_initial"]), float(scored["score"]))
+                self.assertLess(float(row["score_initial"]), float(row["total_score"]))
             finally:
                 await app.close()
                 if old is None:

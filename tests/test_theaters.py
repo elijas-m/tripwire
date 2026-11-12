@@ -17,7 +17,7 @@ from tripwire.dedup import Deduper
 from tripwire.geo import GeoIndex
 from tripwire.models import Cluster, Event, L2, L3, RawItem, TripwireHit
 from tripwire.parsers import parse_ukmto
-from tripwire.rules.lexicon import LexiconEngine
+from tripwire.rules.lexicon import LexiconEngine, _term_pattern
 from tripwire.util import utcnow
 
 CFG = Config(Path(__file__).resolve().parent.parent).load()
@@ -57,6 +57,28 @@ class LexiconTests(unittest.TestCase):
             event("NATO begins military exercise near the border", tier=2), 1.0, 1.0)
         self.assertTrue(result.dropped)
         self.assertEqual(result.drop_reason, "hard_negative")
+
+    def test_inflected_forms_match(self) -> None:
+        for term, text in (("взрыв", "взрывы"), ("взрыв", "взрывов"),
+                           ("кибератака", "кибератаками"),
+                           ("airstrike", "airstrikes"), ("missile strike", "missile strikes")):
+            pattern = _term_pattern(term)
+            self.assertIsNotNone(pattern)
+            self.assertTrue(pattern.search(text), f"{term} -> {text}")
+
+    def test_replaced_ending_is_not_an_inflection_suffix(self) -> None:
+        self.assertIsNone(_term_pattern("кибератака").search("кибератаки"))
+
+    def test_inflection_allowance_is_bounded(self) -> None:
+        self.assertIsNone(_term_pattern("взрыв").search("взрывчатка"))
+        self.assertIsNone(_term_pattern("strike").search("striker"))
+        self.assertIsNone(_term_pattern("תקיפה").search("תקיפות"))
+
+    def test_inflected_headlines_score(self) -> None:
+        for text in ("Взрывы в Белгороде", "Airstrikes hit Kyiv"):
+            result = self.engine.score(event(text, tier=2), 1.0, 1.0)
+            self.assertFalse(result.dropped, text)
+            self.assertGreater(result.score, 0.0, text)
 
     def test_tier_zero_ignores_hard_negative(self) -> None:
         result = self.engine.score(

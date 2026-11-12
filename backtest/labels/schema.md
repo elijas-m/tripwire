@@ -202,7 +202,7 @@ y168 = first_seen < outcome_at <= first_seen + 168h
 | `decision_at` | из закрытого файла, не из слепого |
 | `case_type` | `anticipatory`/`detection`/`non_material`/`out_of_scope`/`unresolved` |
 | `outcome` | 1/0 для `anticipatory`; `null` для остальных типов |
-| `outcome_type` | `none`/`rhetoric`/`posture`/`kinetic`/`strategic` |
+| `outcome_type` | `none`/`rhetoric`/`posture`/`kinetic`/`strategic`/`cyber` |
 | `outcome_severity` | 0–4 |
 | `outcome_at` | время первого подтверждённого события |
 | `observed_until` | докуда проверено отсутствие исхода |
@@ -282,8 +282,9 @@ PIT-сценарии в калибровку не входят — они ото
 - **Precision/recall** на уровне эпизодов: TP — эскалация с решением до
   `outcome_at`; FN — эскалация без решения; FP — решение без исхода за 72 ч.
 - **Brier** = `mean((p_i - y_i)^2)`, где `p_i` — калиброванная вероятность из
-  балла на якоре: `clusters.score_initial`, зафиксированного после первого
-  события кластера. Финальный `clusters.total_score` не используется — он
+  балла на якоре: `clusters.score_initial`, балл самого первого события кластера
+  (без театрального decay и модификаторов — они относятся к другим эпизодам).
+  Финальный `clusters.total_score` не используется — он
   растёт с последующими событиями и заносит будущее в прогноз.
 - **Brier skill score** = `1 - Brier / Brier_base`, базовая вероятность — из
   train-части.

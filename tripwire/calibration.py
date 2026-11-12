@@ -1,10 +1,10 @@
 """Brier calibration for the geopolitical label set.
 
-Predictions are anchored at ``first_seen``: the theater score recorded after the
-cluster's first scored event (``clusters.score_initial``). The final cluster
-score is never used, because it keeps growing with later events and would leak
-the future into the prediction. Outcomes are read from labels and count only
-when they happen strictly after the anchor.
+Predictions are anchored at ``first_seen``: the score of the cluster's first
+scored event itself (``clusters.score_initial``), without theater decay or
+modifiers. The final cluster score is never used, because it keeps growing with
+later events and would leak the future into the prediction. Outcomes are read
+from labels and count only when they happen strictly after the anchor.
 """
 
 from __future__ import annotations

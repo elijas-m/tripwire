@@ -1,5 +1,8 @@
 # Weighted lexicon for Layer B (§6.2 B3).
 # Terms are case-insensitive. A trailing '*' is a stem wildcard (any word chars).
+# Inflected forms match too: ru terms allow up to 3 extra Cyrillic chars, en terms
+# allow a plural s/es, other scripts stay exact. A replaced ending (кибератака ->
+# кибератаки) is not a suffix and does not match; use a '*' stem for those.
 # Scores: base = max(group weight) + 0.5 * (sum of other matched group weights), capped 12.
 version: 1
 

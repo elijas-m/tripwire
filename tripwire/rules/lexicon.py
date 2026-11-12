@@ -17,6 +17,12 @@ _DENIAL = re.compile(
     re.I,
 )
 _SENTENCE = re.compile(r"[^.!?\n]+")
+_CYRILLIC = re.compile(r"[а-яё]")
+_LATIN = re.compile(r"[a-z]")
+# An inflected form carries the same signal: «взрыв» → «взрывы», «airstrike» → «airstrikes».
+_RU_TAIL = r"[а-яё]{0,3}(?![\w])"
+_EN_TAIL = r"(?:s|es)?(?![\w])"
+_EXACT_TAIL = r"(?![\w])"
 
 
 def _denied_ranges(text: str) -> list[tuple[int, int]]:
@@ -40,7 +46,12 @@ def _term_pattern(term: str) -> re.Pattern[str] | None:
     if term[0].isalnum():
         body = r"(?<![\w])" + body
     if term[-1].isalnum() or term[-1] == "*":
-        body = body + r"(?![\w])"
+        if _CYRILLIC.search(term):
+            body = body + _RU_TAIL
+        elif _LATIN.search(term):
+            body = body + _EN_TAIL
+        else:
+            body = body + _EXACT_TAIL
     try:
         return re.compile(body, re.I)
     except re.error:

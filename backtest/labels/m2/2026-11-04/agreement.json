@@ -1,33 +1,35 @@
 {
- "n": 33,
- "kappa": 1.0,
- "ci_low": 1.0,
- "ci_high": 1.0,
- "raw_agreement": 1.0,
- "pe": 0.34618916437098257,
- "distributions": {
-  "user": {
-   "anticipatory": 4,
-   "out_of_scope": 17,
-   "non_material": 6,
-   "detection": 6
+  "generated_at": "2026-11-05T17:19:33Z",
+  "n": 33,
+  "po": 1.0,
+  "pe": 0.34618916437098257,
+  "kappa": 1.0,
+  "ci_low": 1.0,
+  "ci_high": 1.0,
+  "raw_agreement": 1.0,
+  "distributions": {
+    "user": {
+      "out_of_scope": 17,
+      "non_material": 6,
+      "detection": 6,
+      "anticipatory": 4
+    },
+    "agent": {
+      "out_of_scope": 17,
+      "detection": 6,
+      "non_material": 6,
+      "anticipatory": 4
+    }
   },
-  "agent": {
-   "anticipatory": 4,
-   "out_of_scope": 17,
-   "non_material": 6,
-   "detection": 6
-  }
- },
- "bootstrap": {
-  "resamples": 1000,
-  "seed": 42,
-  "rng": "random.Random(42), как в tripwire/calibration.py"
- },
- "disagreements": [],
- "threshold": 0.7,
- "verdict": "kappa >= 0.7: словарь согласован",
- "supersedes_applied": true,
- "schema_version": "2.1",
- "generated_at": "2026-11-04T09:59:59Z"
+  "only_user": 0,
+  "only_agent": 0,
+  "bootstrap": {
+    "resamples": 1000,
+    "seed": 42
+  },
+  "min_pairs": 5,
+  "threshold": 0.7,
+  "verdict": "kappa 0.7 или выше: словарь согласован",
+  "supersedes_applied": true,
+  "disagreements": []
 }

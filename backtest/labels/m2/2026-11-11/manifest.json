@@ -1,0 +1,40 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-11-11T22:31:39Z",
+  "since_days": 365,
+  "first_seen_max": "2026-11-04T22:31:39Z",
+  "min_age_hours": 168.0,
+  "require_anchor": true,
+  "theaters": [
+    "EU_RU",
+    "ISRAEL",
+    "GULF",
+    "MENA"
+  ],
+  "seed": "tripwire",
+  "near_miss_range": [
+    4.0,
+    8.0
+  ],
+  "exclude_paths": [
+    "/opt/tripwire/backtest/labels/m2"
+  ],
+  "excluded_known": 33,
+  "counts": {
+    "alert": 1,
+    "precursor": 10,
+    "near_miss": 3,
+    "random": 50
+  },
+  "candidates": 64,
+  "promotion": {
+    "promoted_from": "labels.agent.jsonl",
+    "promoted_at": "2026-11-13T07:15:09Z",
+    "annotator": "agent",
+    "authorized_by": "user request 2026-11-13",
+    "kappa_applicable": false,
+    "rows": 128,
+    "current_rows": 64,
+    "note": "Agent draft promoted to registry on user instruction; no independent user labels exist for this round, so Cohen kappa is not measurable here."
+  }
+}

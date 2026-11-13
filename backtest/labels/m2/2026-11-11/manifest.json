@@ -36,5 +36,119 @@
     "rows": 128,
     "current_rows": 64,
     "note": "Agent draft promoted to registry on user instruction; no independent user labels exist for this round, so Cohen kappa is not measurable here."
+  },
+  "second_pass": {
+    "file": "labels.agent2.jsonl",
+    "annotator": "agent2",
+    "rows": 64,
+    "observed_until": "2026-11-13T00:19:23Z",
+    "cutoff_reason": "min observed_until of the first pass, handed over as a single scalar so no per-candidate label information leaks",
+    "blind": true,
+    "independence_check": {
+      "identical_nonempty_notes": 0,
+      "identical_evidence_url_sets": 34,
+      "of_which_single_url_from_candidates_jsonl": 33,
+      "shared_urls_absent_from_blind_input": 3,
+      "evidence_items": 91,
+      "verdict": "no copying signal: identical sets are single URLs taken from the shared blind input"
+    },
+    "mechanical_checks": "16/17 pass; one http:// IAEA course URL in an out_of_scope row (cosmetic)"
+  },
+  "agreement": {
+    "file": "agreement.agents.json",
+    "kind": "agent-vs-agent",
+    "human_kappa_applicable": false,
+    "left_file": "labels.jsonl",
+    "left_meaning": "agent1 draft plus main-agent corrections of 2026-11-13T00:19-00:23Z",
+    "right_file": "labels.agent2.jsonl",
+    "n": 64,
+    "po": 0.875,
+    "pe": 0.38427734375,
+    "kappa": 0.7969865186360032,
+    "ci_low": 0.6659,
+    "ci_high": 0.9177,
+    "frozen_before_adjudication": true,
+    "note": "JSON keys 'user'/'agent' mean left/right file, not human/agent. Measures reproducibility of the v2.1 dictionary, not validity against human judgment. Point estimate is above the 0.7 threshold but the CI crosses it. Do NOT regenerate this file after adjudication: that would record post-adjudication convergence as agreement (the 2026-11-04 kappa 1.0 artifact)."
+  },
+  "adjudication": {
+    "adjudicated_at": "2026-11-13T10:48:20Z",
+    "adjudicated_by": "user",
+    "rulings": [
+      {
+        "candidate_id": "cluster:11641@2026-11-03T13:54:18Z",
+        "theater": "ISRAEL",
+        "from": "anticipatory",
+        "to": "non_material",
+        "accepted": "agent2",
+        "correction_label_id": "R2-2026-11-11641",
+        "supersedes": "R2026-11-11641",
+        "reason": "IRGC claim of 08.11 tankers is not an independently established material action; anchor is a threat"
+      },
+      {
+        "candidate_id": "cluster:10662@2026-11-02T17:08:48Z",
+        "theater": "GULF",
+        "from": "anticipatory",
+        "to": "anticipatory",
+        "accepted": "agent1",
+        "reason": "Riyadh Aramco tower 08.11 is a new target class, not a background series of airport attacks; both sides cited the same Al Jazeera article"
+      },
+      {
+        "candidate_id": "cluster:9462@2026-11-01T12:48:06Z",
+        "theater": "EU_RU",
+        "from": "detection",
+        "to": "detection",
+        "accepted": "agent1",
+        "reason": "water supply disruption already present at the anchor"
+      }
+    ],
+    "registry_rows": 129,
+    "current_rows": 64,
+    "positives_after": 1,
+    "positives_before": 2,
+    "calibration_neutral_disagreements": 5,
+    "open_defect": "tier definition conflict: backtest/labels/schema.md:218 calls tier 0/1 \"official statements, agencies, profile monitoring\" while config/sources.yaml:3 defines 1=gov/intergov press, 2=agencies, 3=OSINT. agent2 marked ISW/Critical Threats and IMPACT-se as tier 1 and Reuters as tier 1. Being reconciled in schema.md.",
+    "vps_propagated": true,
+    "vps_propagated_at": "2026-11-13T10:54:46Z",
+    "vps_snapshot": "backtest/labels/m2/2026-11-11/labels.jsonl.pre-adjudication-20261113T105348Z",
+    "vps_round_labels_sha256": "0c3455ab68f41e0bc5c0ce4d45d3eebc828ebf611afc4c30125e98fd24e95f4a",
+    "aggregate_after": {
+      "labels_raw": 192,
+      "labels": 97,
+      "sealed": 97,
+      "records": 81,
+      "conflicting_labels": 0,
+      "conflicting_sealed": 0,
+      "labels_sha256": "0e8ecf00704bd9064299213e810ca43577faef0c7c92ace6251a01612fe59bbd",
+      "excluded": {
+        "low_confidence": 1,
+        "out_of_scope_subject": 15
+      },
+      "split": {
+        "train": 48,
+        "test": 33
+      },
+      "horizons": {
+        "24": {
+          "positives": 1,
+          "brier_isotonic": 0.0303,
+          "skill_isotonic": -68.8182,
+          "skill_platt": -71.1614
+        },
+        "72": {
+          "positives": 4,
+          "brier_isotonic": 0.0548,
+          "skill_isotonic": -6.8863,
+          "skill_platt": -4.5434
+        },
+        "168": {
+          "positives": 7,
+          "brier_isotonic": 0.1514,
+          "skill_isotonic": -2.9471,
+          "skill_platt": -1.226
+        }
+      },
+      "publishable": false,
+      "note": "168h positives 8->7 and isotonic skill -1.9084->-2.9471 after removing 11641 (lead 116.91h, y168 only). 24h and 72h unchanged. No horizon is publishable: needs >=100 episodes and >=20 positives."
+    }
   }
 }

@@ -254,8 +254,9 @@ feature_headlines:
   en:
     - 're:^how\b.{0,140}\b(?:changed|transformed|reshaped|redefined|remade|altered|revived|is changing|are changing)\b'
     - 're:^what\b.{0,100}\b(?:taught|teaches|revealed|changed)\b'
-    - 're:^(?:\d+|two|three|four|five|six|seven|eight|nine|ten)\s+(?:years?|decades?)\s+(?:after|later)\b'
-    - 're:^(?:years?|decades?)\s+(?:after|later)\b'
+    - 're:^(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|a|an)\s+(?:years?|months?|weeks?|decades?)\s+(?:on|later|after)\b'
+    - 're:^(?:years?|months?|weeks?|decades?)\s+(?:on|later|after)\b'
+    - 're:\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:years?|months?|weeks?)\s+on\b'
     - lessons from
     - lessons learned
     - what we learned
@@ -267,6 +268,8 @@ feature_headlines:
   ru:
     - 're:^как\b.{0,140}\b(?:изменил|изменила|изменило|преобразил|перестроил|повлиял)\b'
     - 're:^спустя\b'
+    - 're:^(?:\d+|один|два|три|четыре|пять|шесть|семь|восемь|девять|десять)\s+(?:год|года|лет|месяц\w*|недел\w*)\s+(?:спустя|после|позже)'
+    - 're:(?:спустя|через)\s+(?:\d+|один|два|три|четыре|пять|шесть|семь|восемь|девять|десять|полгода|год|несколько)\b'
     - годовщин*
     - ретроспектив*
     - история одного
@@ -333,11 +336,12 @@ procedural_headlines:
     - 're:(?:вступительн|приветственн|заключительн|ключев)\w*\s+слов\w*'
     - 're:(?:выступление|речь|доклад)\s+на\s+.{0,60}(?:совещани|сесси|конференци|брифинг|форум|ассамбле)'
     - 're:(?:вебинар|онлайн-семинар)'
+# "Emergency Committee" is the name of a standing IHR body, not an emergency.
 procedural_exceptions:
   en:
-    - 're:\b(?:emergency|urgent|extraordinary|crisis)\b'
+    - 're:\b(?:emergency|urgent|extraordinary|crisis)\b(?!\s+committee\b)'
   ru:
-    - 're:(?:внеочередн|экстренн|чрезвычайн)'
+    - 're:(?:внеочередн|экстренн|чрезвычайн)\w*\b(?!\s+комитет)'
 
 # Hard negatives (B1). Skipped for tier-0 sources and for events with a strong fact verb (B2).
 negative:

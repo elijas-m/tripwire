@@ -98,6 +98,26 @@ class LexiconTests(unittest.TestCase):
         self.assertTrue(result.dropped)
         self.assertEqual(result.drop_reason, "feature_article")
 
+    def test_months_on_retrospective_dropped(self) -> None:
+        result = self.engine.score(event(
+            "Six months on, accessing hard-to-reach communities key to halting Ebola "
+            "outbreak", tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertTrue(result.dropped)
+        self.assertEqual(result.drop_reason, "feature_article")
+
+    def test_russian_months_later_retrospective_dropped(self) -> None:
+        result = self.engine.score(event(
+            "Шесть месяцев спустя: доступ к отдалённым общинам — ключ к остановке "
+            "вспышки Эболы", tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertTrue(result.dropped)
+        self.assertEqual(result.drop_reason, "feature_article")
+
+    def test_current_bulletin_with_duration_is_not_a_retrospective(self) -> None:
+        result = self.engine.score(event(
+            "Ebola outbreak continues six months after the first case, 40 new cases "
+            "reported", tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertFalse(result.dropped)
+
     def test_breaking_headline_is_not_a_feature(self) -> None:
         result = self.engine.score(
             event("Missile strike kills dozens in Kyiv", tier=0), 1.0, 1.0)
@@ -168,6 +188,26 @@ class LexiconTests(unittest.TestCase):
     def test_emergency_committee_meeting_is_not_routine(self) -> None:
         result = self.engine.score(event(
             "WHO Emergency Committee meeting on the mpox outbreak",
+            tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertFalse(result.dropped)
+
+    def test_ihr_emergency_committee_statement_dropped(self) -> None:
+        result = self.engine.score(event(
+            "Statement of the Forty-sixth Meeting of the Polio IHR Emergency Committee",
+            tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertTrue(result.dropped)
+        self.assertEqual(result.drop_reason, "procedural_meeting")
+
+    def test_russian_emergency_committee_meeting_dropped(self) -> None:
+        result = self.engine.score(event(
+            "Девятое совещание Чрезвычайного комитета ММСП по полиомиелиту",
+            tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
+        self.assertTrue(result.dropped)
+        self.assertEqual(result.drop_reason, "procedural_meeting")
+
+    def test_russian_emergency_situation_is_not_procedural(self) -> None:
+        result = self.engine.score(event(
+            "Чрезвычайная ситуация: вспышка Эболы в Конго",
             tier=0, theater="PANDEMIC", category="pandemic"), 1.0, 1.0)
         self.assertFalse(result.dropped)
 

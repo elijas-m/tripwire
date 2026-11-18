@@ -1,0 +1,91 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-11-18T22:55:54Z",
+  "since_days": 365,
+  "first_seen_max": "2026-11-11T22:55:54Z",
+  "min_age_hours": 168.0,
+  "require_anchor": true,
+  "theaters": [
+    "EU_RU",
+    "ISRAEL",
+    "GULF",
+    "MENA"
+  ],
+  "seed": "tripwire",
+  "score_bands": {
+    "band_8plus": [
+      8.0,
+      null
+    ],
+    "band_4_8": [
+      4.0,
+      8.0
+    ],
+    "band_2_4": [
+      2.0,
+      4.0
+    ],
+    "band_0_2": [
+      0.0,
+      2.0
+    ]
+  },
+  "signal_per_band": 20,
+  "exclude_paths": [
+    "/opt/tripwire/backtest/labels/m2"
+  ],
+  "excluded_known": 97,
+  "counts": {
+    "alert": 0,
+    "band_8plus": 2,
+    "band_4_8": 3,
+    "band_2_4": 15,
+    "band_0_2": 20,
+    "random": 53
+  },
+  "candidates": 93,
+  "human_subset": {
+    "purpose": "independent human annotation for Cohen kappa against the agent pass",
+    "file": "worksheet.user.md",
+    "n": 25,
+    "of": 93,
+    "method": "sha1 rank of \"<seed>:<cluster_id>\", ascending, first N; no score/level/stratum used",
+    "seed": "m2-human-2026-11-18",
+    "selected_at": "2026-11-18T22:59:10Z",
+    "cluster_ids": [
+      10184,
+      10191,
+      10928,
+      12424,
+      13090,
+      13562,
+      13754,
+      13866,
+      14606,
+      14830,
+      15612,
+      15690,
+      15928,
+      16058,
+      16504,
+      16749,
+      16775,
+      16797,
+      17169,
+      17301,
+      17752,
+      18326,
+      18482,
+      18891,
+      20106
+    ],
+    "theaters": {
+      "EU_RU": 13,
+      "ISRAEL": 5,
+      "GULF": 4,
+      "MENA": 3
+    },
+    "agent_pass_exists_at_selection": false,
+    "note": "Answers are collected in the worksheet, not in labels.jsonl, so the agent cron still sees an open round. labels.jsonl is assembled only after the agent pass exists."
+  }
+}

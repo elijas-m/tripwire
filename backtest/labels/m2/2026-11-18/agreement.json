@@ -1,0 +1,61 @@
+{
+  "generated_at": "2026-11-21T14:26:06Z",
+  "n": 25,
+  "po": 0.88,
+  "pe": 0.3664,
+  "kappa": 0.8106060606060608,
+  "ci_low": 0.5924,
+  "ci_high": 1.0,
+  "raw_agreement": 0.88,
+  "distributions": {
+    "user": {
+      "out_of_scope": 13,
+      "detection": 5,
+      "non_material": 6,
+      "anticipatory": 1
+    },
+    "agent": {
+      "non_material": 22,
+      "detection": 27,
+      "out_of_scope": 42,
+      "unresolved": 1,
+      "anticipatory": 1
+    }
+  },
+  "only_user": 0,
+  "only_agent": 68,
+  "bootstrap": {
+    "resamples": 1000,
+    "seed": 42
+  },
+  "min_pairs": 5,
+  "threshold": 0.7,
+  "verdict": "kappa 0.7 или выше: словарь согласован",
+  "supersedes_applied": true,
+  "disagreements": [
+    {
+      "candidate_id": "cluster:15612@2026-11-06T17:57:43Z",
+      "theater": "GULF",
+      "user": "non_material",
+      "agent": "out_of_scope",
+      "user_notes": "переговорный трек с раундом в Абу-Даби 10–11.11 — встречи, не материальное действие, обмен пленными согласован лишь «в принципе» и в окне не проведён (предыдущи",
+      "agent_notes": "Путин пригласил переговорщиков (едущих в ОАЭ) на совещание с СБ — субъект RU, переговоры РФ/Украина вне театра GULF."
+    },
+    {
+      "candidate_id": "cluster:17752@2026-11-09T06:13:18Z",
+      "theater": "ISRAEL",
+      "user": "out_of_scope",
+      "agent": "unresolved",
+      "user_notes": "профиль/блог в Substack, не идентифицируется ни как лицо, ни как издание, событием безопасности не является",
+      "agent_notes": "Контентless-заголовок Substack-аккаунта (Tanto Minchiata); событие и субъект не определены, проверить нельзя."
+    },
+    {
+      "candidate_id": "cluster:18891@2026-11-10T04:38:55Z",
+      "theater": "EU_RU",
+      "user": "anticipatory",
+      "agent": "detection",
+      "user_notes": "через несколько часов после якоря 10.11 подтверждён удар по гипермаркету «Эпицентр» в самом Кировограде — новый класс целей и первые подтверждённые пострадавшие",
+      "agent_notes": "Взрыв в Кировограде (Кропивницкий) утром 10.11; UA.NEWS: удар РФ по гипермаркету Эпицентр, есть пострадавшие. То же утреннее событие на якоре, фоновая серия."
+    }
+  ]
+}

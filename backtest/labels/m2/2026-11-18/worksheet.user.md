@@ -49,7 +49,7 @@
   https://ria.ru/20261102/evropa-2128598044.html
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=out_of_scope; почему=волна бытовых протестов о стоимости жизни сразу в десятках стран ЕС — внутренняя социальная политика без геополитического субъекта (актор+цель эпизода не выделяются), не событие безопасности; ссылка=
 ```
 
 ---
@@ -66,7 +66,7 @@
   https://ria.ru/20261102/kharkovskaya-oblast-2128593478.html
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=detection; почему=якорь — рутинное «слышали взрыв» в Чугуевской общине на фоне ежедневной серии ударов по Харьковщине (серия чаще раза в 72 ч, пострадавшие были до якоря), в окне 02–09.11 только повторы обычной интенсивности — 02.11 Чугуив, 7 раненых, тот же уровень; ссылка=https://www.ukrinform.net/rubric-ato/4180616-injury-toll-after-russian-attack-on-chuhuiv-rises-to-seven.html
 ```
 
 ---
@@ -83,7 +83,7 @@
   https://ria.ru/20261103/vzryv-2128801373.html
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=detection; почему=фоновая серия ударов по Ровно идёт с октября (28–29.10 уже были погибшие), в окне 03–10.11 повторы тех же классов целей — подстанция, АЗС, 06.11 Сарны с одним погибшим на уровне октября, качественной эскалации именно этой ситуации нет; ссылка=https://www.ukrinform.net/rubric-ato/4182013-man-killed-in-russian-morning-attack-on-rivne-region-damage-reported.html
 ```
 
 ---
@@ -100,7 +100,7 @@
   https://news.google.com/rss/articles/CBMiakFVX3lxTE9fMldaSkQ4TVYzWXdWLXRoaGc5cHRlZnVzanNrZWlOWFNJZExIMnRNcDFObnJROU5rZGNuQ2xVWjFzZzFIWEtoeGp5RHl4WHh6UzBPcGpKaXYxeDIwUDdwcTNZOEtPdDNLbHc?oc=5
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=non_material; почему=некорроборированное утверждение комментатора (пост Карлсона в X 01–02.11) о давлении Нетаньяху на Трампа, в окне 04–11.11 удара по Ирану не было (удар по Кешму — 02.11, до якоря), реакция Белого дома — послеякорная риторика; ссылка=https://www.timesofisrael.com/liveblog_entry/far-right-conspiracist-tucker-carlson-netanyahu-pushing-trump-to-nuke-iran-hundreds-of-millions-will-die/
 ```
 
 ---
@@ -117,7 +117,7 @@
   https://ria.ru/20261104/vzryv-2129248064.html
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=detection; почему=серия КАБ/дронов по Сумам идёт с сентября (бывало до 23 раненых и погибших), в окне 06.11 — 6 КАБ и 7 раненых — в обычном диапазоне серии, новых классов целей и первых эффектов нет; ссылка=https://www.ukrinform.net/rubric-ato/4182237-russian-forces-strike-sumy-with-glide-bombs-three-injured.html
 ```
 
 ---
@@ -135,7 +135,7 @@
   > EU Statement – UN General Assembly 3rd Committee: Interactive Dialogue on the use of mercenaries European External Action Service (EEAS)
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=non_material; почему=заявление ЕС на интерактивном диалоге Третьего комитета ООН о наёмниках — внешнеполитическая риторика без материального действия, в окне только процедурные шаги комитета (голосования по проектам резолюций 13.11), действий ЕС нет; ссылка=
 ```
 
 ---
@@ -153,7 +153,7 @@
   > Турция может недосчитаться около 1,5 млн российских туристов в 2027 году из-за подорожания отдыха и конкуренции с другими направлениями, считает гендиректор сети турагентств "Розовый слон" Алексан Мкртчян."В Турции растут цены на продукты, электричество, канализацию: в общем, расходы повышаются на все, включая зарплаты персонала.
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=out_of_scope; почему=прогноз руководителя сети турагентств о потере Турцией части российского турпотока-2027 из-за роста цен — экономика потребления/быт, не геополитическая безопасность; ссылка=
 ```
 
 ---
@@ -171,7 +171,7 @@
   > Жители Франции вновь выходят на масштабные протесты, сообщает в четверг газета Le Figaro.
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=out_of_scope; почему=массовые внутренние протесты во Франции о стоимости жизни — внутренняя социальная политика, не геополитическая безопасность (продолжение сентябрьской волны); ссылка=
 ```
 
 ---
@@ -189,7 +189,7 @@
   > Stewardship for Post-remediation Management of Radioactively Contaminated Land International Atomic Energy Agency
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=out_of_scope; почему=техническая публикация МАГАТЭ о пост-ремедиационном управлении радиоактивно загрязнёнными землями — процедурный материал (guidance), не событие безопасности, израильского субъекта в эпизоде нет; ссылка=
 ```
 
 ---
@@ -206,7 +206,7 @@
   https://ria.ru/20261106/ryutte-2129606735.html
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=non_material; почему=интервью генсека НАТО Рютте Bloomberg после промежуточных выборов в США — комментарии, в окне 06–13.11 решений НАТО/США по конфигурации сил нет (проект planning document — утечка черновика, не решение); ссылка=https://news.liga.net/en/politics/news/rutte-told-how-he-supported-trump-after-his-defeat-in-the-midterm-elections
 ```
 
 ---
@@ -223,7 +223,7 @@
   https://ria.ru/20261106/delegatsiya-2129839659.html
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=non_material; почему=переговорный трек с раундом в Абу-Даби 10–11.11 — встречи, не материальное действие, обмен пленными согласован лишь «в принципе» и в окне не проведён (предыдущий обмен — 23.10, до якоря); ссылка=https://www.vedomosti.ru/politics/articles/2026/11/11/1244440-itogi-peregovorov
 ```
 
 ---
@@ -241,7 +241,7 @@
   > Acting Navy Secretary Hung Cao visited Blount Island, Fla., to see how its workforce and waterfront facilities prepare and position equipment for Marines worldwide. The visit highlighted the installation's role in sustaining deployed forces and supporting fleet readiness.
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=out_of_scope; почему=рутинный визит и.о. министра ВМС США на базу Блаут-Айленд во Флориде — протокол/PR о логистике, субъект (США, внутренняя база) не соответствует театру EU_RU и событием безопасности не является; ссылка=
 ```
 
 ---
@@ -258,7 +258,7 @@
   https://news.google.com/rss/articles/CBMi6AFBVV95cUxOd0hick5VckNJckFYZmg0V1MzVlpEUTNFX2RLb2E2UGozc0d1MktLZi0xb1dvYjl5VjM5cUYydUtEazhNYndsMXVXVFNudmwzc0Rjc2NXYjdfeUk2VjJzaXhSTGxBc200UllHLUVMSGlLODl1ZWpBSG8wbk9Ycy1ncGV0Z2RUZmhWNnRjT1F5a2w4QkNJUkFZd1NKTjFJX2hkQ050SlpLbURnaWhYVjd0bmlnNnhTMDJLajVRMWdoVWxFOHgtbmduRzZONV91MEp1aERjN1daX3JlbDJ3VTRCOFJnbDB0dzA5?oc=5
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=out_of_scope; почему=справочная консульская страница um.fi о визовых требованиях — guidance, не событие безопасности, решение по въезду российских спортсменов 12.11 — отдельный эпизод со своим субъектом; ссылка=
 ```
 
 ---
@@ -275,7 +275,7 @@
   https://ria.ru/20261107/khokkey-2129898151.html
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=out_of_scope; почему=спорт — оценка тренером игры хоккеиста НХЛ Капризова; ссылка=
 ```
 
 ---
@@ -292,7 +292,7 @@
   https://ria.ru/20261107/erdogan-2130018221.html
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=non_material; почему=телефонный разговор Эрдогана с Трампом 07.11 — заявления о вкладе в урегулирование, в окне только заявления (включая беседу с Гутерришем на COP31 10.11), материальных шагов Турции нет; ссылка=https://ukranews.com/en/news/1186195-trump-discussed-the-war-in-ukraine-with-erdogan-turkey-promises-greater-involvement-in-the
 ```
 
 ---
@@ -309,7 +309,7 @@
   https://ria.ru/20261108/ukraina-2130049357.html
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=detection; почему=якорь — «слышали взрыв» в Луцке в ночь серии Шахедов по Волыни, материальное событие уже было на якоре (удар по энергообъекту и пожар на агропредприятии той же ночью, серия с жертвами идёт с 14.10), в окне по самому Луцку нового качества нет; ссылка=https://www.ukrinform.net/rubric-ato/4182591-russian-drones-attack-volyn-region-overnight-fire-breaks-out-at-agricultural-enterprise.html
 ```
 
 ---
@@ -329,7 +329,7 @@
   https://news.google.com/rss/articles/CBMibkFVX3lxTFBRTnJmdFUwN2w0NzFwcV9yTk42ei1mTEg3TmNjbjdEM283LWlzV1NZNjVnN3FWeVg5YTZxN25CdUNWcXVoOS03OE4wRlQ2blFFdnlqdXd2b1l0b28yaU9uX3NnNUxLYXk1aG9GVm9R?oc=5
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=non_material; почему=аналитика Ynet о дефиците около 12 тыс. военнослужащих и коалиционных торгах по призыву ультраортодоксов, в окне 08–15.11 нет голосования Кнессета, решения кабинета или приказа о призыве (мандат Эйзенкоту 08.11 — процедура формирования коалиции, не закон о призыве); ссылка=https://www.ynetnews.com/opinions-analysis/article/hyygx8apgl
 ```
 
 ---
@@ -346,7 +346,7 @@
   https://news.google.com/rss/articles/CBMingFBVV95cUxOQ3p4VU5YR1hJbDUyTXdTaTlpMFJwMnBsdHotZU9STUlrbmxMTTlDUUFYMmlUUEJhYXFkNU8yNFRhTU9UNkJ4UTRGSTdYcVdPaVdWZVh4aGVEMjRCSkxKTllhTzR2YjJPQThwbmVoTTd6dVN3TW1jel9telZJWjRLaTF2VDN5QmZ4OG9sYlVLOGYwX1NvdDRxVzNiYktkZw?oc=5
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=out_of_scope; почему=блог-мнение в Times of Israel об американском сенаторе от Мичигана Эль-Сайеде — внутренняя политика США, субъект не соответствует театру ISRAEL; ссылка=
 ```
 
 ---
@@ -363,7 +363,7 @@
   https://ria.ru/20261108/harkov-2130130922.html
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=detection; почему=Харьков — ежедневная фоновая серия (локальный рекорд 03.11 — 73 раненых, до окна), в окне 08–15.11 повторы обычной интенсивности (09.11 дрон в жилой дом — 5 раненых, 11.11 ракеты по жилым кварталам и 2 погибших при ударе дроном, 14.11 медучреждение) — без рекорда и новых классов целей; ссылка=https://english.nv.ua/nation/two-russian-missiles-batter-residential-kharkiv-blocks-50658163.html
 ```
 
 ---
@@ -380,7 +380,7 @@
   https://ria.ru/20261108/turtsija-2130162368.html
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=out_of_scope; почему=план RTÜK создать ИИ-систему контроля телеэфира и цифровых платформ — внутреннее медиарегулирование Турции (сюжет тянется с июня 2026), в окне развертывания или блокировок нет, не геополитическая безопасность; ссылка=
 ```
 
 ---
@@ -397,7 +397,7 @@
   https://news.google.com/rss/articles/CBMiY0FVX3lxTE02U2ZjbUpLa0hRMGZsUXZIVU81aDV4ZHljcmZKZnlWa3k3ZlFvZXpvTlNka1llVU9DMUJzeVZyUUFhOU80bUo1NC1zN1NaWkRpakpWWVpObXFZR1g5bFVCbkdtYw?oc=5
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=out_of_scope; почему=профиль/блог в Substack, не идентифицируется ни как лицо, ни как издание, событием безопасности не является; ссылка=
 ```
 
 ---
@@ -414,7 +414,7 @@
   https://news.google.com/rss/articles/CBMiREFVX3lxTFBNU3pvVHlwNzJ2MC1KWTc3Vlg0Q0t4eEdRN1FBV3pNczRSaXlDbXFTQndRTC1IYzZkdWY1MGdCc2FqSE1i?oc=5
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=out_of_scope; почему=погода — дождь в Рафхе по сообщению SPA, быт, не безопасность; ссылка=
 ```
 
 ---
@@ -431,7 +431,7 @@
   https://news.google.com/rss/articles/CBMiSkFVX3lxTE5EaUZCTUJpblJxUHNYNElfUVlVd3R3clYzRDNFN292Y2V4WEE1ZEQ1RW5jN3Q4TzFILUhCSmFwNjdMNnAwSWhsTUR3?oc=5
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=out_of_scope; почему=открытие университетского бизнес-инкубатора «The Container» в Джидде — внутренняя экономика/образование, не безопасность; ссылка=
 ```
 
 ---
@@ -448,7 +448,7 @@
   https://ria.ru/20261110/vzryv-2130456002.html
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=anticipatory; почему=через несколько часов после якоря 10.11 подтверждён удар по гипермаркету «Эпицентр» в самом Кировограде — новый класс целей и первые подтверждённые пострадавшие серии (двое в критическом состоянии), 16.11 первый погибший при уничтожении пищевого завода — качественная эскалация в окне; ссылка=https://ua.news/en/war-vs-rf/u-kropivnitskomu-pislia-rosiiskogo-obstrilu-gorit-epitsentr
 ```
 
 ---
@@ -465,7 +465,7 @@
   https://news.google.com/rss/articles/CBMiSkFVX3lxTE5DbTFuU2kycVBtNk9VVUZGVlRBS09VcW9ud1dYYS1USmxubWpzQzNyN3JtMzBGcmMtVWlOTjhqNWJCLVBpSmFrbjlB?oc=5
 
 ```
-ОТВЕТ> case_type=; почему=; ссылка=
+ОТВЕТ> case_type=out_of_scope; почему=университетская конференция по шариатским вопросам и ИИ — академическое мероприятие, не событие безопасности; ссылка=
 ```
 
 ---

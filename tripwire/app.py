@@ -400,6 +400,22 @@ class TripwireApp:
                 drop_reason=result.drop_reason,
             )
 
+        endemic_factor, endemic_bonus, endemic_reasons = self.domain.endemic_adjust(event)
+        if (endemic_bonus or endemic_reasons or endemic_factor != 1.0) and not result.dropped:
+            factor = self.domain.trust.get(event.tier, 0.25) * geo_factor * novelty
+            added = round(endemic_bonus * factor, 3)
+            factors = {**result.factors, "endemic": endemic_factor}
+            if added:
+                factors["bonus"] = round(float(factors.get("bonus") or 0) + added, 3)
+            result = ScoreResult(
+                score=round((result.score + added) * endemic_factor, 3),
+                base=result.base,
+                matched=list(result.matched) + endemic_reasons,
+                factors=factors,
+                dropped=result.dropped,
+                drop_reason=result.drop_reason,
+            )
+
         if tripwire is None and (result.dropped or result.score <= 0):
             await self.db.update_event_scoring(event_id, 0.0, L0, rules, status="zero")
             if old_score is None:

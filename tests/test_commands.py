@@ -39,12 +39,10 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
                     "confirmed cases and 74 deaths (case fatality ratio 61%). "
                     "Human-to-human transmission was confirmed.")
         else:
-            title = ("Ebola disease caused by Bundibugyo virus in the Democratic Republic "
-                     f"of the Congo, Kenya and Nigeria {suffix}")
-            body = ("The Bundibugyo virus disease outbreak has expanded in the Democratic "
-                    "Republic of the Congo, with Kenya and Nigeria reporting imported cases. "
-                    "A total of 9704 confirmed cases (crude case fatality ratio: 48.3%) were "
-                    "reported.")
+            title = f"Cholera outbreak in Yemen: 2400 confirmed cases {suffix}"
+            body = ("The cholera outbreak has expanded in Yemen with 2400 confirmed cases "
+                    "and 288 deaths (case fatality ratio: 12%). Health authorities reported "
+                    "the outbreak is concentrated in the western governorates.")
         outcome = await self.app.process(RawItem(
             source_id="who_don_odata", title=title, body=body,
             url=f"https://who.int/don-{suffix}", published_at=utcnow(),

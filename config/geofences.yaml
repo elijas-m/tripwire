@@ -197,6 +197,13 @@ watchlist_pathogens:
   - disease X
   - unknown pneumonia
 
+# Endemic zones: an outbreak confined to these countries is background, not an
+# alert (§7.3). Spread beyond the zone or a PHEIC declaration still alerts.
+endemic_pathogens:
+  ebola:
+    aliases: [ebola, bundibugyo, эбола]
+    countries: [CD, CG, GA, CM, AO, UG, RW, BI, SS, SD, ET, GN, SL, LR, CI, GH, SN, ML, BF, NE, TD, NG, ZM, ZW, MW, MZ, ZA]
+
 # Static district registry for Oref coverage share (§6.1). Approximate HFC areas.
 # A district counts as "alerted" when any of its anchor localities appears in an alert.
 oref_districts:

@@ -16,6 +16,11 @@ _AWARENESS_RE = re.compile(
     r"\b(?:world\s+[\w-]+\s+day|eradication|vaccination|immuni[sz]ation|"
     r"vaccine campaign|awareness day)\b"
 )
+_PHEIC_RE = re.compile(
+    r"\bpublic\s+health\s+emergency\s+of\s+(?:international|global)\s+concern\b"
+    r"|\bчрезвычайн\w+\s+ситуаци\w+\s+в\s+области\s+общественного\s+здравоохранения"
+    r"\s+имеющ\w+\s+международн\w+\s+значени\w+"
+)
 _OUTBREAK_ENDING_RE = re.compile(
     r"\b(?:to end|ending|eradication|eliminat\w*|contained|declared over|"
     r"no longer)\b[^.]{0,60}\b(?:outbreak|epidemic)\b"
@@ -38,6 +43,23 @@ class DomainEngine:
             for v in dict.fromkeys(cfg.geofences.get("watchlist_pathogens", []))
             if norm_text(v)
         ]
+        self.endemic: list[tuple[re.Pattern[str], set[str]]] = []
+        for entry in (cfg.geofences.get("endemic_pathogens") or {}).values():
+            countries = {str(c) for c in (entry.get("countries") or [])}
+            patterns = []
+            for alias in (entry.get("aliases") or []):
+                a = norm_text(alias)
+                if not a:
+                    continue
+                if re.search(r"[а-яё]", a):
+                    stem = re.sub(r"[аеёиоуыэюя]$", "", a)
+                    body = re.escape(stem) + r"[а-яё]{0,3}(?![\w])"
+                else:
+                    body = re.escape(a) + r"(?![\w])"
+                patterns.append(re.compile(r"(?<![\w])" + body))
+            if countries and patterns:
+                self.endemic.append((re.compile("|".join(p.pattern for p in patterns)),
+                                     countries))
 
     # ---------- nature ----------
     def evaluate(self, event: Event, geo_factor: float, novelty_factor: float) -> ScoreResult | None:
@@ -142,6 +164,38 @@ class DomainEngine:
         ):
             return False
         return any(pattern.search(text) for pattern in self.watchlist)
+
+    def endemic_adjust(self, event: Event) -> tuple[float, float, list[str]]:
+        """(factor, bonus_points, reasons) for an endemic-zone outbreak.
+
+        Confined to the endemic zone it is background: the factor keeps the
+        score visible but below alert thresholds. A PHEIC declaration or any
+        country outside the zone is qualitative escalation and alerts instead.
+        """
+        if event.theater != "PANDEMIC" or not self.endemic or self.geo is None:
+            return 1.0, 0.0, []
+        text = norm_text(f"{event.title} {event.body_excerpt[:900]}")
+        zone: set[str] | None = None
+        for pattern, countries in self.endemic:
+            if pattern.search(text):
+                zone = countries if zone is None else zone | countries
+        if zone is None:
+            return 1.0, 0.0, []
+        cfg = self.th.get("pandemic", {})
+        if _PHEIC_RE.search(text):
+            return 1.0, 0.0, ["PHEIC declaration"]
+        matched = {iso for iso, _alias, _len in self.geo.match_countries(text)}
+        if not matched:
+            return 1.0, 0.0, []
+        if matched - zone:
+            # Follow-up coverage of a known importation (quarantine, travel
+            # routes, recovery) is not a new escalation: require the same
+            # outbreak evidence as the watch-list bonus.
+            if (_OUTBREAK_EVIDENCE_RE.search(text)
+                    and not _OUTBREAK_ENDING_RE.search(text)):
+                return 1.0, float(cfg.get("extralimital_points", 8.0)), ["outside endemic zone"]
+            return 1.0, 0.0, ["outside endemic zone"]
+        return float(cfg.get("endemic_factor", 0.2)), 0.0, ["endemic zone background"]
 
     # ---------- accumulating indicators ----------
     def bonus(self, event: Event) -> tuple[float, list[str]]:

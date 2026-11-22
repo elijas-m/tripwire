@@ -132,6 +132,8 @@ domain:
     border_closure: 6.0
     ihr_committee: 8.0
     watchlist_points: 4.0
+    endemic_factor: 0.2
+    extralimital_points: 8.0
   eu_ru:
     embassy_evac: 5.0
     border_section_closed: 3.0

@@ -343,6 +343,97 @@ class PandemicBonusTests(unittest.TestCase):
         self.assertEqual(points, 4.0)
 
 
+class EndemicEbolaTests(unittest.TestCase):
+    def setUp(self) -> None:
+        from tripwire.rules.domain import DomainEngine
+        self.engine = DomainEngine(CFG, GeoIndex(CFG))
+
+    def test_endemic_outbreak_damped(self) -> None:
+        factor, bonus, reasons = self.engine.endemic_adjust(event(
+            "Ebola outbreak: 40 confirmed cases reported in the Democratic Republic "
+            "of the Congo", tier=0, theater="PANDEMIC", country="CD",
+            category="pandemic"))
+        self.assertEqual(factor, 0.2)
+        self.assertEqual(bonus, 0.0)
+        self.assertIn("endemic zone background", reasons)
+
+    def test_russian_endemic_outbreak_damped(self) -> None:
+        factor, bonus, reasons = self.engine.endemic_adjust(event(
+            "Вспышка Эболы в Конго: 40 подтвержденных случаев",
+            tier=0, theater="PANDEMIC", country="CD", category="pandemic"))
+        self.assertEqual(factor, 0.2)
+        self.assertEqual(bonus, 0.0)
+        self.assertIn("endemic zone background", reasons)
+
+    def test_us_case_gets_extralimital_bonus(self) -> None:
+        factor, bonus, reasons = self.engine.endemic_adjust(event(
+            "Ebola outbreak: case confirmed in the United States after travel from Congo",
+            tier=0, theater="PANDEMIC", country="US", category="pandemic"))
+        self.assertEqual(factor, 1.0)
+        self.assertEqual(bonus, 8.0)
+        self.assertIn("outside endemic zone", reasons)
+
+    def test_european_case_gets_extralimital_bonus(self) -> None:
+        factor, bonus, reasons = self.engine.endemic_adjust(event(
+            "Ebola outbreak: case confirmed in Germany after travel from the Democratic "
+            "Republic of the Congo",
+            tier=0, theater="PANDEMIC", country="DE", category="pandemic"))
+        self.assertEqual(factor, 1.0)
+        self.assertEqual(bonus, 8.0)
+        self.assertIn("outside endemic zone", reasons)
+
+    def test_importation_followup_gets_no_bonus(self) -> None:
+        factor, bonus, reasons = self.engine.endemic_adjust(event(
+            "Travel route of Kenya's first Ebola case",
+            tier=0, theater="PANDEMIC", country="KE", category="pandemic"))
+        self.assertEqual(factor, 1.0)
+        self.assertEqual(bonus, 0.0)
+        self.assertIn("outside endemic zone", reasons)
+
+    def test_outbreak_ending_abroad_gets_no_bonus(self) -> None:
+        factor, bonus, _reasons = self.engine.endemic_adjust(event(
+            "Ebola outbreak in Kenya is over, last patient discharged",
+            tier=0, theater="PANDEMIC", country="KE", category="pandemic"))
+        self.assertEqual(factor, 1.0)
+        self.assertEqual(bonus, 0.0)
+
+    def test_spread_to_non_endemic_country_alerts(self) -> None:
+        factor, bonus, _reasons = self.engine.endemic_adjust(event(
+            "Ebola outbreak spreads from the Democratic Republic of the Congo to Kenya",
+            tier=0, theater="PANDEMIC", country="CD", category="pandemic"))
+        self.assertEqual(factor, 1.0)
+        self.assertEqual(bonus, 8.0)
+
+    def test_pheic_overrides_damping(self) -> None:
+        factor, bonus, reasons = self.engine.endemic_adjust(event(
+            "WHO declares Ebola outbreak in Congo a public health emergency of "
+            "international concern", tier=0, theater="PANDEMIC", country="CD",
+            category="pandemic"))
+        self.assertEqual(factor, 1.0)
+        self.assertEqual(bonus, 0.0)
+        self.assertIn("PHEIC declaration", reasons)
+
+    def test_no_country_keeps_full_score(self) -> None:
+        factor, bonus, reasons = self.engine.endemic_adjust(event(
+            "Ebola outbreak: 40 confirmed cases reported",
+            tier=0, theater="PANDEMIC", country=None, category="pandemic"))
+        self.assertEqual(factor, 1.0)
+        self.assertEqual(bonus, 0.0)
+        self.assertEqual(reasons, [])
+
+    def test_other_pathogen_not_damped(self) -> None:
+        factor, bonus, reasons = self.engine.endemic_adjust(event(
+            "Marburg outbreak: 12 confirmed cases reported in Uganda",
+            tier=0, theater="PANDEMIC", country="UG", category="pandemic"))
+        self.assertEqual((factor, bonus, reasons), (1.0, 0.0, []))
+
+    def test_non_pandemic_theater_untouched(self) -> None:
+        factor, bonus, reasons = self.engine.endemic_adjust(event(
+            "Ebola outbreak in the Democratic Republic of the Congo",
+            tier=0, theater="EU_RU", country="UA", category="eu_ru"))
+        self.assertEqual((factor, bonus, reasons), (1.0, 0.0, []))
+
+
 class ForceProjectionTests(unittest.TestCase):
     def setUp(self) -> None:
         self.geo = GeoIndex(CFG)
@@ -866,7 +957,7 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
         row = await self.app.db.fetchone("SELECT level FROM alerts")
         self.assertEqual(int(row["level"]), 3)
 
-    async def test_ebola_outbreak_warning_end_to_end(self) -> None:
+    async def test_ebola_international_spread_warning_end_to_end(self) -> None:
         source = self.app.sources["who_don_odata"]
         raw = RawItem(
             source_id="who_don_odata", title=(
@@ -882,6 +973,42 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["kind"], "scored")
         self.assertEqual(result["alert"]["action"], "dry_run")
         self.assertEqual(result["alert"]["level"], 2)
+
+    async def test_endemic_ebola_stays_background(self) -> None:
+        source = self.app.sources["who_don_odata"]
+        raw = RawItem(
+            source_id="who_don_odata",
+            title="Ebola disease caused by Bundibugyo virus, Democratic Republic of the Congo",
+            body=("The Bundibugyo virus disease outbreak continues in the Democratic Republic "
+                  "of the Congo. A total of 340 confirmed cases, including 120 deaths, "
+                  "were reported."),
+            url="https://who.int/2026-DON-endemic", published_at=utcnow(),
+            category="pandemic", guid="who-don-endemic",
+        )
+        result = await self.app.process(raw, source)
+        self.assertEqual(result["kind"], "scored")
+        row = await self.app.db.fetchone("SELECT score, level FROM events ORDER BY id DESC")
+        self.assertLess(float(row["score"]), 3.0)
+        self.assertEqual(int(row["level"]), 0)
+        alerts = await self.app.db.fetchone("SELECT COUNT(*) AS n FROM alerts")
+        self.assertEqual(int(alerts["n"]), 0)
+
+    async def test_ebola_import_to_us_alerts(self) -> None:
+        source = self.app.sources["who_don_odata"]
+        raw = RawItem(
+            source_id="who_don_odata",
+            title=("Ebola case confirmed in the United States after travel from the "
+                   "Democratic Republic of the Congo"),
+            body=("The United States confirmed an imported Ebola case in a traveller returning "
+                  "from the Democratic Republic of the Congo, where the Ebola outbreak "
+                  "continues. The patient is isolated; contact tracing is under way."),
+            url="https://who.int/2026-DON-us", published_at=utcnow(),
+            category="pandemic", guid="who-don-us",
+        )
+        result = await self.app.process(raw, source)
+        self.assertEqual(result["kind"], "scored")
+        self.assertEqual(result["alert"]["action"], "dry_run")
+        self.assertGreaterEqual(result["alert"]["level"], 2)
 
     async def test_who_awareness_item_not_alerted(self) -> None:
         source = self.app.sources["who_news_rss"]

@@ -239,27 +239,37 @@ sources:
 
   - id: phivolcs_feed
     name: "PHIVOLCS feed"
+    # The origin serves its chain without the GlobalSign GCC R46 OV TLS CA 2025
+    # intermediate, so config/certs/gsgccr46ovtlsca2025.pem is what makes the
+    # handshake succeed. Since 2026-11-19 the WordPress paths answer HTTP 403 to
+    # this server's IP for every user agent (checked 2026-11-23), while the same
+    # URL returns 200 and 10 items from a different egress, so the block is
+    # upstream. Polling is slowed to hourly: the source recovers on its own if
+    # PHIVOLCS lifts it, and Philippine quakes stay covered by the global feeds.
     type: rss
     parser: rss
     url: "https://www.phivolcs.dost.gov.ph/feed/"
     tier: 0
     theater: NATURE
     category: volcano
-    interval_s: 1800
+    interval_s: 3600
     max_age_hours: 48
 
   # ---------------- Health ----------------
   - id: who_news_rss
     name: "WHO News"
-    type: rss
-    parser: rss
-    url: "https://www.who.int/rss-feeds/news-english.xml"
+    # The public RSS (news-english.xml) serves a 2020 archive and 772 KB per poll, so
+    # the same stream is read from WHO's OData API. The id stays: tripwires, selftest
+    # and the 2020 backtest scenarios reference who_news_rss.
+    type: json
+    parser: who_don_odata
+    url: "https://www.who.int/api/news/newsitems?$orderby=PublicationDateAndTime%20desc&$top=20&$select=Title,PublicationDateAndTime,ItemDefaultUrl,NewsType"
     tier: 0
     theater: PANDEMIC
     category: pandemic
     interval_s: 3600
     max_age_hours: 72
-    max_items: 30
+    max_items: 20
 
   - id: who_don_odata
     name: "WHO Disease Outbreak News (OData)"
@@ -731,6 +741,14 @@ sources:
 
   - id: idf_tg
     name: "IDF (Telegram)"
+    enabled: false
+    # t.me stopped refreshing the @idfonline preview: it still serves its newest
+    # post of 2023-05-23, checked 2026-11-23 from this server and from a desktop
+    # outside it. There is no live official substitute — IDF releases already
+    # reach TW-IL-GROUND-OP through gnews_idf / gnews_toi / gnews_jpost, all of
+    # which parsed 30 items on their last poll. A newsroom channel was tested
+    # (Israel Hayom, live) and rejected: 20 mostly domestic items per 5-minute
+    # poll would flood the ISRAEL theater scoring.
     type: telegram
     parser: telegram_html
     url: "https://t.me/s/idfonline"
@@ -743,6 +761,11 @@ sources:
 
   - id: israel_mfa_tg
     name: "Israel MFA (Telegram)"
+    enabled: false
+    # The preview is frozen at 2021-02-08 and there is no live free route:
+    # gov.il returns 403 to the service's fetcher and mfa.gov.il fails the TLS
+    # handshake (both checked 2026-11-23). MFA statements still reach
+    # TW-IL-GROUND-OP through gnews_toi / gnews_jpost / gnews_idf.
     type: telegram
     parser: telegram_html
     url: "https://t.me/s/IsraelMFA"
@@ -789,10 +812,10 @@ sources:
     max_age_hours: 48
 
   - id: ukmto_jina
-    name: "UKMTO advisories (r.jina.ai)"
+    name: "UKMTO recent incidents (r.jina.ai)"
     type: html
     parser: ukmto_jina
-    url: "https://r.jina.ai/https://www.ukmto.org/ukmto-products/advisories"
+    url: "https://r.jina.ai/https://www.ukmto.org/recent-incidents"
     tier: 1
     theater: GULF
     category: gulf
@@ -894,11 +917,16 @@ sources:
     interval_s: 1800
     max_age_hours: 24
 
-  - id: osinttechnical_tg
-    name: "OSINTtechnical (Telegram)"
+  - id: clashreport_tg
+    name: "Clash Report (Telegram)"
+    # Replaces osinttechnical_tg: the @OSINTtechnical preview is frozen at
+    # 2022-06-27 (checked 2026-11-23 from this server), so the source had served
+    # the same 19 posts since the deploy. Clash Report covers the same ground in
+    # English and is live; no tripwire referenced the old id.
     type: telegram
     parser: telegram_html
-    url: "https://t.me/s/OSINTtechnical"
+    url: "https://t.me/s/clashreport"
+    origin_domains: [clashreport.com]
     tier: 3
     theater: EU_RU
     category: eu_ru

@@ -360,7 +360,10 @@ def parse_tzeva(source: Source, text: str, cfg: Any = None) -> list[RawItem]:
     districts = _oref_districts(cfg)
     out = []
     total_districts = max(len(districts), 1)
-    for alert in raw_alerts[-source.max_items:]:
+    # The history endpoint is newest-first; a tail slice kept the oldest reports,
+    # which max_age_hours then discarded, so nothing was ever ingested.
+    newest_first = sorted(raw_alerts, key=lambda a: safe_int(a.get("time")) or 0, reverse=True)
+    for alert in newest_first[: source.max_items]:
         if alert.get("isDrill"):
             continue
         cities = [c for c in (alert.get("cities") or []) if c]
@@ -1298,6 +1301,14 @@ def parse_spa(source: Source, text: str, cfg: Any = None) -> list[RawItem]:
 
 
 class _TGParser:
+    """Reads posts out of a t.me/s/<channel> preview page.
+
+    Classes are matched as whole tokens: ``tgme_widget_message_text``, ``_author``,
+    ``_bubble`` and friends all begin with ``tgme_widget_message``, so a substring
+    test let an inner element replace the block that carries ``data-post`` and every
+    item collapsed onto the page URL.
+    """
+
     def __init__(self) -> None:
         from html.parser import HTMLParser
 
@@ -1313,10 +1324,10 @@ class _TGParser:
 
             def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
                 a = dict(attrs)
-                cls = a.get("class") or ""
+                cls = set((a.get("class") or "").split())
                 if tag == "div":
                     self.depth += 1
-                    if "tgme_widget_message" in cls and "tgme_widget_message_wrap" not in cls:
+                    if "tgme_widget_message" in cls and self.current is None:
                         self.current = {"post": a.get("data-post"), "datetime": None, "text": []}
                         self.block_depth = self.depth
                     if "tgme_widget_message_text" in cls and self.current is not None:
@@ -1398,35 +1409,63 @@ def parse_ppi(source: Source, text: str, cfg: Any = None) -> list[RawItem]:
 
 
 def parse_ukmto(source: Source, text: str, cfg: Any = None) -> list[RawItem]:
-    """UKMTO advisories as rendered by r.jina.ai (markdown links)."""
+    """UKMTO warnings/advisories from the r.jina.ai rendering of recent-incidents.
+
+    Every report is one line — "UKMTO WARNING 216-26 - ATTACK Incident Date: 21 Nov 2026
+    Incident Time: 0550UTC <report>". Older renderings wrapped the same wording inside a
+    markdown link, so the number is matched outside brackets and the tail stops at "]"
+    either way. Reports without an incident date take the calendar line above them: with
+    no date at all the normalizer would stamp the ingestion time and years-old advisories
+    would pass max_age_hours as if they had just been issued.
+
+    The render carries no per-report link, and canon_url drops fragments, so the number
+    travels as a query parameter: one page URL for every report collides in the deduper's
+    URL check and only the first advisory would ever be stored.
+    """
     out: list[RawItem] = []
     seen: set[str] = set()
-    pattern = re.compile(
-        r"\[(\d{2}/\d{2}/\d{4})\s+([^\]:]+):\s*"
-        r"(UKMTO\s+(?:WARNING|ADVISORY)\s+\d{2,3}-\d{2})\s*[-–:]?\s*([^\]]*)\]"
-        r"\((https?://[^)]+)\)",
-        re.I,
-    )
-    for m in pattern.finditer(text):
-        date_raw, kind, advisory, rest, url = m.groups()
-        advisory = re.sub(r"\s+", " ", advisory.upper())
+    head = re.compile(r"UKMTO\s+(WARNING|ADVISORY)\s*[-–]?\s*(\d{2,3}-\d{2,4})\b([^\[\]\n]*)", re.I)
+    cal = re.compile(r"\b(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})\b")
+    for m in head.finditer(text):
+        num = m.group(2)
+        advisory = f"UKMTO {m.group(1).upper()} {num}"
         if advisory in seen:
             continue
         seen.add(advisory)
-        try:
-            published = datetime.strptime(date_raw, "%d/%m/%Y").replace(tzinfo=UTC)
-        except ValueError:
-            published = parse_dt(date_raw)
-        kind = kind.strip().lower()
+        rest = m.group(3).strip()
+        label = re.split(r"(?i)incident date", rest, maxsplit=1)[0].strip(" -–:.,|")
+        published = None
+        dm = re.search(r"(?i)incident date:?\s*(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})", rest)
+        if dm:
+            published = _ukmto_date(dm.group(1))
+        if published is None:
+            for value in reversed(cal.findall(text[: m.start()])):
+                published = _ukmto_date(value)
+                if published:
+                    break
+        tm = re.search(r"(?i)incident time:?\s*(\d{3,4})", rest)
+        if published and tm:
+            hhmm = tm.group(1).zfill(4)
+            published = published.replace(hour=int(hhmm[:2]) % 24, minute=int(hhmm[2:]) % 60)
         out.append(_item(
-            source, f"{advisory}: {kind}", f"{kind}: {rest.strip()}",
-            url, published,
-            {"advisory": advisory, "incident_type": kind},
+            source, f"{advisory}: {label}" if label else advisory, rest,
+            f"https://www.ukmto.org/recent-incidents?advisory={num}", published,
+            {"advisory": advisory, "incident_type": (label or m.group(1)).lower()},
             guid=advisory, category="gulf",
         ))
         if len(out) >= source.max_items:
             break
     return out
+
+
+def _ukmto_date(value: str) -> datetime | None:
+    # Incident lines abbreviate the month, the calendar headings spell it out.
+    for fmt in ("%d %b %Y", "%d %B %Y"):
+        try:
+            return datetime.strptime(value, fmt).replace(tzinfo=UTC)
+        except ValueError:
+            continue
+    return None
 
 
 # ---------------- helpers ----------------

@@ -437,7 +437,8 @@ class AlertManager:
         why = self._why(event, tripwire, score_result)
         guidance = self._guidance(level, theater)
         refute = self._refute(tripwire)
-        disclaimer = str(self.alerts_cfg.get("disclaimer") or "").strip()
+        disclaimer = (str(self.alerts_cfg.get("disclaimer") or "").strip()
+                      if self._guidance_enabled() else "")
         next_tripwire = (tripwire.next_tripwire if tripwire else "").strip()
 
         sources, total_sources = await self._source_lines(cluster, event, tripwire)
@@ -510,8 +511,13 @@ class AlertManager:
         ]
         return "\n".join(lines)[:4096]
 
+    def _guidance_enabled(self) -> bool:
+        return bool((self.alerts_cfg.get("guidance") or {}).get("enabled", True))
+
     def _guidance(self, level: int, theater: str) -> str:
         block = self.alerts_cfg.get("guidance") or {}
+        if not self._guidance_enabled():
+            return ""
         name = LEVEL_NAMES.get(level, "WARNING")
         overrides = block.get("overrides") or {}
         theater_block = overrides.get(theater) or overrides.get(str(theater).upper()) or {}

@@ -340,6 +340,22 @@ sources:
     interval_s: 3600
     max_age_hours: 72
 
+  - id: africacdc_rss
+    name: "Africa CDC newsroom"
+    # who_news_rss, who_don_odata and gnews_who are one publisher, so the theater
+    # has more endpoints than independent desks. Probed 2026-11-25: 10 items,
+    # newest the same morning.
+    type: rss
+    parser: rss
+    url: "https://www.africacdc.org/feed/"
+    origin_domains: [africacdc.org]
+    tier: 1
+    theater: PANDEMIC
+    category: pandemic
+    interval_s: 3600
+    max_age_hours: 72
+    max_items: 15
+
   - id: chinacdc_weekly
     name: "China CDC Weekly"
     type: html
@@ -811,6 +827,23 @@ sources:
     interval_s: 900
     max_age_hours: 48
 
+  - id: toi_rss
+    name: "Times of Israel (publisher feed)"
+    # gnews_toi answers 429 often enough to drop a burst, and the official Israeli
+    # channels are unreachable from the VPS (oref 403 outside Israel, t.me previews
+    # of IDF/GPO serve an empty page). The publisher's own feed is the closest
+    # reachable primary: 15 items, newest same day, probed 2026-11-25.
+    type: rss
+    parser: rss
+    url: "https://www.timesofisrael.com/feed/"
+    origin_domains: [timesofisrael.com]
+    tier: 2
+    theater: ISRAEL
+    category: israel
+    interval_s: 900
+    max_age_hours: 24
+    max_items: 20
+
   - id: ukmto_jina
     name: "UKMTO recent incidents (r.jina.ai)"
     type: html
@@ -829,6 +862,21 @@ sources:
     url: "https://news.google.com/rss/search?q=site%3Aspa.gov.sa%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
     origin_domains: [spa.gov.sa]
     tier: 1
+    theater: GULF
+    category: gulf
+    interval_s: 1200
+    max_age_hours: 48
+    max_items: 20
+
+  - id: gnews_hormuz
+    name: "Google News: Hormuz and tanker strikes"
+    # UKMTO is the only incident feed in this theater, so a Gulf strike reaches
+    # WARNING through one publisher only. A site: query on the shipping dailies
+    # returns nothing; the region terms queried directly gave 7 items on 2026-11-25.
+    type: rss
+    parser: gnews_rss
+    url: "https://news.google.com/rss/search?q=%22strait%20of%20hormuz%22%20OR%20%22tanker%20attacked%22%20OR%20%22vessel%20struck%22%20when%3A2d&hl=en-US&gl=US&ceid=US%3Aen"
+    tier: 2
     theater: GULF
     category: gulf
     interval_s: 1200

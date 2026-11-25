@@ -130,6 +130,88 @@ class PandemicTripwireTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("TW-PAN-PANDEMIC", hits)
 
 
+class GulfShipAttackTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = DB(Path(self.tmp.name) / "t.db")
+        await self.db.open()
+        self.engine = TripwireEngine(CFG)
+
+    async def asyncTearDown(self) -> None:
+        await self.db.close()
+        self.tmp.cleanup()
+
+    async def _hit(self, text: str):
+        ev = Event(
+            source_id="ukmto_jina", tier=1, title=text, body_excerpt=text,
+            category="gulf", theater="GULF", country="OM", ingested_at=utcnow(),
+        )
+        hits = await self.engine.match(ev, self.db)
+        return next((h for h in hits if h.id == "TW-GULF-SHIP-ATTACK"), None)
+
+    async def test_tanker_hit_in_hormuz_fires(self) -> None:
+        hit = await self._hit(
+            "UKMTO WARNING 216-26 ATTACK. A Tanker transiting outbound in the Strait of "
+            "Hormuz has been hit in the engine room 17NM east of Khasab, Oman.")
+        self.assertIsNotNone(hit)
+        self.assertEqual(hit.level, L2)
+
+    async def test_advisory_without_attack_stays_quiet(self) -> None:
+        hit = await self._hit(
+            "UKMTO ADVISORY 217-26. UKMTO have received a report of an incident involving "
+            "a tanker and military forces in the Gulf of Oman. Authorities are aware.")
+        self.assertIsNone(hit)
+
+    async def test_freight_rates_are_not_an_attack(self) -> None:
+        hit = await self._hit(
+            "Tanker rates hit record highs as shipping firms reroute around the Gulf of Oman.")
+        self.assertIsNone(hit)
+
+    async def test_russian_seizure_fires(self) -> None:
+        hit = await self._hit("Суда были захвачены в Ормузском проливе, сообщает флот КСИР.")
+        self.assertIsNotNone(hit)
+
+
+class GroundOperationSpeculationTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = DB(Path(self.tmp.name) / "t.db")
+        await self.db.open()
+        self.engine = TripwireEngine(CFG)
+
+    async def asyncTearDown(self) -> None:
+        await self.db.close()
+        self.tmp.cleanup()
+
+    def israel_event(self, title: str) -> Event:
+        return Event(
+            source_id="gnews_idf", tier=2, title=title, body_excerpt=title,
+            category="israel", theater="ISRAEL", country="IL", ingested_at=utcnow(),
+        )
+
+    async def test_feared_offensive_is_not_an_announcement(self) -> None:
+        hits = {h.id for h in await self.engine.match(self.israel_event(
+            "Hamas fears new Israeli ground offensive as tensions rise near Gaza's "
+            "Yellow Line"), self.db)}
+        self.assertNotIn("TW-IL-GROUND-OP", hits)
+
+    async def test_russian_feared_offensive_is_not_an_announcement(self) -> None:
+        hits = {h.id for h in await self.engine.match(self.israel_event(
+            "ХАМАС опасается новой наземной операции Израиля в Газе"), self.db)}
+        self.assertNotIn("TW-IL-GROUND-OP", hits)
+
+    async def test_announced_ground_operation_fires(self) -> None:
+        hits = {h.id for h in await self.engine.match(self.israel_event(
+            "IDF announces ground operation in Gaza against Hamas positions"), self.db)}
+        self.assertIn("TW-IL-GROUND-OP", hits)
+
+    async def test_fear_after_the_announcement_does_not_negate(self) -> None:
+        hits = {h.id for h in await self.engine.match(self.israel_event(
+            "IDF announces ground operation in Gaza, Hamas fears further advances"),
+            self.db)}
+        self.assertIn("TW-IL-GROUND-OP", hits)
+
+
 class TripwireConfirmationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
@@ -574,7 +656,25 @@ class AlertFormatTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Не установлено:", text)
         self.assertIn("независимое подтверждение", text)
 
+    async def test_guidance_and_disclaimer_are_off_until_calibration(self) -> None:
+        hit = TripwireHit(id="TW-IL-IRAN-STRIKE", level=L3, why="Взаимные удары.",
+                          one_liner="Удар Израиля по Ирану", confirmed=True,
+                          confirm_reason="официальный источник (tier 0)")
+        decision = SimpleNamespace(score=20.0, threshold=16.0, sources=2)
+        text = await self.alerts._compose(
+            L3, "ISRAEL", None, self._event(), decision, None, hit, 12)
+        self.assertNotIn("Что делать", text)
+        self.assertNotIn("Это не распоряжение органов гражданской обороны", text)
+        self.assertIn("Что опровергнет:", text)
+
+    def enable_guidance(self) -> None:
+        """The shipped config keeps guidance off until calibration is done."""
+        block = dict(self.alerts.alerts_cfg.get("guidance") or {})
+        block["enabled"] = True
+        self.alerts.alerts_cfg = {**self.alerts.alerts_cfg, "guidance": block}
+
     async def test_bluf_blocks_and_guidance(self) -> None:
+        self.enable_guidance()
         hit = TripwireHit(
             id="TW-IL-IRAN-STRIKE", level=L3, why="Взаимные удары.",
             one_liner="Удар Израиля по Ирану", confirmed=True,
@@ -594,6 +694,7 @@ class AlertFormatTests(unittest.IsolatedAsyncioTestCase):
         self.assertLessEqual(len(text), 4096)
 
     async def test_bluf_theater_override(self) -> None:
+        self.enable_guidance()
         hit = TripwireHit(
             id="TW-NAT-TSUNAMI-WARNING", level=L3, why="Цунами.",
             one_liner="Предупреждение о цунами", confirmed=True,
@@ -607,6 +708,7 @@ class AlertFormatTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Что делать: Следуйте указаниям местных служб.", text)
 
     async def test_bluf_structural_horizon(self) -> None:
+        self.enable_guidance()
         hit = TripwireHit(
             id="TW-PAN-PHEIC", level=L3, why="ЧС ВОЗ.",
             one_liner="ВОЗ объявила PHEIC", confirmed=True,
@@ -622,6 +724,7 @@ class AlertFormatTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Следуйте рекомендациям органов здравоохранения", text)
 
     async def test_correlation_refute_has_no_next_tripwire(self) -> None:
+        self.enable_guidance()
         decision = SimpleNamespace(score=9.0, threshold=8.0, sources=2)
         text = await self.alerts._compose(
             L2, "ISRAEL", None, self._event(), decision, None, None, 11)

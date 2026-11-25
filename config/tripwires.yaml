@@ -172,7 +172,11 @@ tripwires:
       (?is)(\b(ground (operation|offensive|invasion|incursion)|наземн\w+ (операц|наступлен|вторжен)|מבצע קרקעי|פלישה קרקעית)\b)
       .{0,160}
       (\b(iran|lebanon|hezbollah|gaza|syria|yemen|иран|ливан|хизбалл|газа|сирия|йемен)\b)
-    negate_regex: '(?i)(exercise|drill|simulation|scenario|anniversary|учени|тренировк|сценарий|may|could|might|planned|planning|plans to|considering|обсужда|возможн|планир|якобы)'
+    # Speculation only counts when it governs the operation itself ("Hamas fears new
+    # Israeli ground offensive"), so an announcement that mentions fear afterwards
+    # still fires. The matched text is title + body, so the window must not cross a
+    # newline or the body copy re-triggers the title.
+    negate_regex: '(?i)(exercise|drill|simulation|scenario|anniversary|учени|тренировк|сценарий|may|could|might|planned|planning|plans to|considering|обсужда|возможн|планир|якобы|(?:fears?|fearing|anxious\w*|apprehensive\w*|warns? of|warned of|likely to|set to|poised to|on the verge of|на грани|anticipat\w*|expects?|prepar\w* for|brac\w* for|опаса\w*|ожидает\w*)[^.\n]{0,60}(?:ground|наземн|קרקע))'
     why: "Официально объявленная наземная операция в регионе — эскалация до региональной войны."
     one_liner: "Объявлена наземная операция"
 
@@ -210,6 +214,22 @@ tripwires:
     horizon: tactical
     refute: "Возобновление судоходства и разминирование пролива."
     next_tripwire: "Удар по нефтяной инфраструктуре или закрытие воздушного пространства Залива."
+
+  - id: TW-GULF-SHIP-ATTACK
+    type: regex
+    theater: GULF
+    level: WARNING
+    cooldown_min: 120
+    max_tier: 2
+    # Kept on one line: a folded block scalar would put literal spaces around the
+    # alternation pipes, and the region/vessel gates are zero-width lookaheads.
+    regex: '(?is)(?=.*\b(hormuz|persian gulf|gulf of oman|arabian sea|aden|bab el[- ]?mandeb|red sea|fujairah|jebel ali|ras tanura|khasab|dammam|qatar\w*|uae|united arab emirates|abu dhabi|kuwait\w*|bahrain\w*|oman\w*|йемен|ормуз\w*|персидск\w*|оман\w*|оаэ|катар\w*|бахрейн|кувейт\w*)\b)(?=.*\b(tanker\w*|vessels?|crude carrier|судн\w*|суда|судов|теплоход\w*|балкер\w*|танкер\w*)\b).*(?:struck (?:by|in|on|from|with)|hit (?:by|in|on|from|with)|attack|missile|drone|rocket|projectile|explosion|exploded|ablaze|caught fire|mines|mined|mine|seized|hijack|подбит\w*|атак\w*|удар\w*|взрыв\w*|загор\w*|захват\w*|захвач\w*|минировани)'
+    negate_regex: '(?i)(exercise|drill|simulation|scenario|conference|exhibition|учени|тренировк|сценарий|конференц|выставк)'
+    why: "Атака на судно в Заливе. UKMTO ведёт их серией, но удар по танкеру у Ормуза — это уже действие против судоходства, а не фон."
+    one_liner: "Атака на судно в районе Ормуза"
+    horizon: tactical
+    refute: "Инцидент оказался техническим происшествием, учением или атака не подтверждена."
+    next_tripwire: "Удар по нефтяной инфраструктуре или закрытие Ормузского пролива."
 
   - id: TW-GULF-OIL-INFRA
     type: regex

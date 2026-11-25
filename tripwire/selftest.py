@@ -66,6 +66,18 @@ FIXTURES: list[Fixture] = [
         expected_level=L2,
     ),
     Fixture(
+        tripwire_id="TW-GULF-SHIP-ATTACK",
+        source_id="ukmto_jina",
+        title="UKMTO WARNING 214-26: ATTACK ON VESSEL",
+        body=("Incident Date: 20 Nov 2026 Incident Time: 0310UTC UKMTO has received a report "
+              "of an incident 45NM south of Aden, Yemen. A crude carrier transiting the Gulf "
+              "of Aden was struck by an uncrewed surface craft, fire on the helideck."),
+        # Deliberately not a Hormuz story: a shared place name puts the event in the
+        # mining cluster above, where the second alert reads as a same-level cooldown.
+        category="gulf", theater="GULF", country="YE", lat=12.6, lon=44.4,
+        expected_level=L2,
+    ),
+    Fixture(
         tripwire_id="TW-NAT-M75",
         source_id="usgs_sig_hour",
         title="M 7.8 - 30 km SSE of Kahramanmaras, Turkey",

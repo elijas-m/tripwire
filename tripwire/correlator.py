@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 from .corroborate import trigger_relevant
 from .models import Cluster, Event, L0, L1, L2, L3, TripwireHit
-from .util import from_ts, now_ts, publisher_domain
+from .util import from_ts, json_loads, now_ts, publisher_domain
 
 
 @dataclass(slots=True)
@@ -83,6 +83,19 @@ class Correlator:
                 if src.tier <= 1:
                     tier01 = True
         return len(domains), tier01
+
+    async def _floor_counted(self, cluster: Cluster | None, event: Event,
+                             rule_id: str) -> bool:
+        """Whether another event in this cluster already earned this rule's floor."""
+        if cluster is None or cluster.id is None:
+            return False
+        for row in await self.db.cluster_origin_rows(cluster.id):
+            if event.id is not None and int(row.get("id") or 0) == int(event.id):
+                continue
+            rules = json_loads(row.get("matched_rules") or "[]", []) or []
+            if isinstance(rules, list) and rule_id in rules:
+                return True
+        return False
 
     def _allowed_level(self, wanted: int, sources: int, tier01: bool, tripwire: bool) -> int:
         if tripwire:
@@ -214,6 +227,10 @@ class Correlator:
             tripwire_points = float(
                 self.levels["critical" if tripwire.level >= L3 else "warning"]
             )
+            if await self._floor_counted(cluster, event, tripwire.id):
+                # One escalation floor per story: a cluster is one incident, and
+                # every mirror of it must not raise the theater again.
+                tripwire_points = 0.0
             contribution = max(contribution, tripwire_points)
         new_score = decayed + contribution
 

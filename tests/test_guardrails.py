@@ -172,6 +172,79 @@ class GulfShipAttackTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(hit)
 
 
+class TripwireFloorPerClusterTests(unittest.IsolatedAsyncioTestCase):
+    """A tripwire lifts its story once, not once per mirror of it."""
+
+    async def asyncSetUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = DB(Path(self.tmp.name) / "t.db")
+        await self.db.open()
+        self.correlator = Correlator(CFG, self.db)
+        self.cluster = Cluster(
+            theater="GULF", category="gulf",
+            title_canonical="Three tankers hit mines in Strait of Hormuz",
+            first_seen=utcnow(), last_seen=utcnow(), state="open",
+        )
+        await self.db.insert_cluster(self.cluster)
+        self.hit = TripwireHit(id="TW-GULF-SHIP-ATTACK", level=L2, why="", one_liner="")
+
+    async def asyncTearDown(self) -> None:
+        await self.db.close()
+        self.tmp.cleanup()
+
+    async def _mirror(self, index: int) -> Event:
+        """One more article about the same story, inserted the way app.py does it."""
+        ev = Event(
+            source_id="gnews_hormuz", tier=2,
+            title=f"Three tankers hit mines in Strait of Hormuz — report {index}",
+            body_excerpt="Iranian guards say the vessels struck mines near the strait.",
+            url=f"https://outlet{index}.news/story{index}", guid_hash=f"mirror-{index}",
+            category="gulf", theater="GULF", country="OM",
+            origin_domain=f"outlet{index}.news", cluster_id=self.cluster.id,
+            ingested_at=utcnow(),
+        )
+        await self.db.insert_event(ev)
+        return ev
+
+    async def _remember_rule(self, ev: Event) -> None:
+        # app.py writes matched_rules only after the correlator has run.
+        await self.db.update_event_scoring(ev.id, 0.18, L2, ["TW-GULF-SHIP-ATTACK"])
+
+    async def test_first_hit_adds_the_warning_floor(self) -> None:
+        current = await self._mirror(0)
+        decision = await self.correlator.add(current, 0.18, self.cluster, self.hit)
+        self.assertGreaterEqual(decision.score, CFG.thresholds["levels"]["warning"])
+        self.assertEqual(decision.cluster_level, L2)
+
+    async def test_mirrors_of_one_story_do_not_stack_to_critical(self) -> None:
+        first = await self._mirror(1)
+        await self.correlator.add(first, 0.18, self.cluster, self.hit)
+        await self._remember_rule(first)
+        last = None
+        for index in range(2, 8):
+            ev = await self._mirror(index)
+            last = await self.correlator.add(ev, 0.18, self.cluster, self.hit)
+            await self._remember_rule(ev)
+        self.assertLess(last.score, float(CFG.thresholds["levels"]["critical"]))
+        self.assertEqual(last.level, L2)
+
+    async def test_a_new_cluster_of_the_same_rule_earns_the_floor_again(self) -> None:
+        first = await self._mirror(1)
+        await self.correlator.add(first, 0.18, self.cluster, self.hit)
+        await self._remember_rule(first)
+        before = float((await self.db.theater_get("GULF"))["score"])
+        other = Cluster(theater="GULF", category="gulf",
+                        title_canonical="Tanker seized off Ras Tanura",
+                        first_seen=utcnow(), last_seen=utcnow(), state="open")
+        await self.db.insert_cluster(other)
+        current = Event(source_id="ukmto_jina", tier=1,
+                        title="Tanker seized by armed men off Ras Tanura", body_excerpt="x",
+                        url="https://ukmto.org/new-incident", guid_hash="mirror-new",
+                        category="gulf", theater="GULF", country="SA", ingested_at=utcnow())
+        decision = await self.correlator.add(current, 0.0, other, self.hit)
+        self.assertGreater(decision.score, before + 7.0)
+
+
 class GroundOperationSpeculationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()

@@ -257,6 +257,8 @@ feature_headlines:
     - 're:^(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|a|an)\s+(?:years?|months?|weeks?|decades?)\s+(?:on|later|after)\b'
     - 're:^(?:years?|months?|weeks?|decades?)\s+(?:on|later|after)\b'
     - 're:\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:years?|months?|weeks?)\s+on\b'
+    # Opinion columns carry a wire prefix ("Commentary | Should Israel Strike…").
+    - 're:^(?:commentary|opinion|editorial|analysis)\s*[|:]'
     - lessons from
     - lessons learned
     - what we learned
@@ -270,6 +272,7 @@ feature_headlines:
     - 're:^спустя\b'
     - 're:^(?:\d+|один|два|три|четыре|пять|шесть|семь|восемь|девять|десять)\s+(?:год|года|лет|месяц\w*|недел\w*)\s+(?:спустя|после|позже)'
     - 're:(?:спустя|через)\s+(?:\d+|один|два|три|четыре|пять|шесть|семь|восемь|девять|десять|полгода|год|несколько)\b'
+    - 're:^(?:мнение|комментарий|колонка)\s*[|:]'
     - годовщин*
     - ретроспектив*
     - история одного

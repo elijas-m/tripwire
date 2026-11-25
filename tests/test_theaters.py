@@ -112,6 +112,28 @@ class LexiconTests(unittest.TestCase):
         self.assertTrue(result.dropped)
         self.assertEqual(result.drop_reason, "feature_article")
 
+    def test_opinion_column_prefix_dropped(self) -> None:
+        for title in ("Commentary | Should Israel Strike In Iran?",
+                      "Opinion | The IDF is not the lord and savior of Israeli democracy",
+                      "Editorial | Israel's endless war",
+                      "Analysis | DDF Exercise Focuses on Defending the Northern Front",
+                      "Commentary: Why the ceasefire will hold"):
+            result = self.engine.score(event(title, tier=0), 1.0, 1.0)
+            self.assertTrue(result.dropped, title)
+            self.assertEqual(result.drop_reason, "feature_article", title)
+
+    def test_russian_opinion_column_prefix_dropped(self) -> None:
+        result = self.engine.score(event(
+            "Мнение | Почему удары по Ирану не остановят ядерную программу"), 1.0, 1.0)
+        self.assertTrue(result.dropped)
+        self.assertEqual(result.drop_reason, "feature_article")
+
+    def test_mid_title_commentary_word_is_not_a_column(self) -> None:
+        result = self.engine.score(event(
+            "Missile strike kills dozens in Kyiv, official commentary withheld",
+            tier=0), 1.0, 1.0)
+        self.assertFalse(result.dropped)
+
     def test_current_bulletin_with_duration_is_not_a_retrospective(self) -> None:
         result = self.engine.score(event(
             "Ebola outbreak continues six months after the first case, 40 new cases "
